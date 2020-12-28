@@ -1,0 +1,289 @@
+:root {
+    --ucr-blue: #1e54a8ff;
+    --ucr-orange: #f9b00fff;
+}
+
+body {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+a {
+    color: rgb(249, 176, 15);
+}
+
+header { 
+    text-align: center; 
+    background-image: url(../images/background-992850_1280.png);
+    color: white;
+    font-family: sans-serif;
+    border-bottom: solid 3px var(--ucr-blue);
+}
+
+header div {
+    border-bottom: 3px solid var(--ucr-orange);
+}
+
+header h1 {
+    display: inline-block;
+    height: 128px;
+    margin: 0;
+    padding-left: 150px;
+    line-height: 128px;
+    font-size: 32pt;
+    background-image: url('../images/spider-logo.png');
+    background-repeat: no-repeat;
+    background-size: contain;
+}
+
+footer {
+    text-align: center;
+    background-image: url(../images/background-992850_1280.png);
+    color: white;
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+
+main {
+    /*Without this style (flex: 1), OpenLayers fails to render the map*/
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    font-family: sans-serif;
+}
+
+.controlpanel { 
+    width: 450px; 
+    overflow-y: auto;
+    overflow-x: hidden;
+    background-image: url(../images/aesthetic-light-yellow-background.jpg);
+    background-color: rgba(255, 255, 255, 0.4);
+    background-blend-mode: lighten;
+    border-right: solid 2px rgb(30, 84, 168);
+}
+
+#affine-transform, .share, #generation-info {
+    border: solid 2px #792432ff;
+    margin: 5px;
+    padding: 3px;
+    border-radius: 5px;
+}
+
+#affine-transform .form-controls.hidden {
+    display: none;
+}
+
+.visualization {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1; /* To fill the space horizontally*/
+}
+
+@media (max-width: 899px) {
+    /* On a small screen, stack up all controls vertically and allow the page to scroll */ 
+    body { overflow-y: auto; }
+
+    /* Use a smaller header */
+    header h1 {
+        font-size: 16pt;
+        line-height: 64px;
+        padding-left: 80px;
+        height: 64px;
+    }
+    
+    main { 
+        display: block;
+        height: auto;
+    }
+
+    .visualization {
+        width: calc(min(90vw,90vh));
+        height: calc(min(90vw,90vh));
+        flex-grow: 0;
+    }
+
+    .controlpanel { 
+        width: 100%;
+        overflow-y: hidden;
+     }
+}
+
+@media (min-width: 900px) {
+    /**On Firefox, this fixes a problem of not being able to scroll the left pange.*/
+    main {min-height: 100px;}
+}
+
+#data-content {
+    flex-grow: 1;
+    height: 100%;
+}
+
+#data-content .ol-zoom-extent button {
+    font-family: "Font Awesome 5 Free";
+}
+
+.form-controls {
+    font-size: large;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-content: stretch;
+}
+
+.form-controls .inputfield {
+    width: 40%;
+    padding-left: 5px;
+    padding-right: 5px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.form-controls .inputfield.small {
+    width: 25%;
+}
+
+.form-controls .inputfield span { 
+    line-height: 1.5em;
+}
+
+.form-controls .inputfield input, .form-controls .inputfield select {
+    flex-grow: 1;
+    font-size: large;
+}
+
+.form-controls button {
+    height: 2em;
+    font-size: large;
+}
+
+.tooltip:before {
+  content: '\f05a';
+  margin-right: 5px;
+  font-family: "Font Awesome 5 Free";
+  font-weight: 900;
+  color: rgb(30, 84, 168);
+  background-color: white;
+  border-radius: 50px;
+  cursor: pointer;
+}
+
+.permalink-container { display: flex; }
+.permalink-container .permalink { flex-grow: 1; }
+
+.code-container { display: flex; }
+.code-container textarea { flex-grow: 1; }
+
+.section-heading {
+    display: block;
+    width: 100%;
+    text-align: center;
+    font-weight: 900;
+    padding-top: 5px;
+    background-color: grey;
+    color: white;
+    font-size: 20px;
+    line-height: 28px;
+    border-radius: 4px;
+    margin-bottom: 5px;
+    margin-top: 0;
+}
+
+.permalink { height: 1.2em; }
+
+.layerlistholder {
+    margin: 5px;
+}
+
+.layerlistholder h2 {
+    text-align: center;
+    line-height: 1em;
+    height: 1em;
+    padding: 5px;
+    margin: 0;
+    background: var(--ucr-blue);
+    color: white;
+}
+
+.layers {
+    list-style: none;
+    margin: 0;
+    padding: 5px;
+    border: solid 2px black;
+    background-color: rgb(225, 254, 253);
+}
+
+.layers li {
+    display: flex;
+    padding-right: 15px;
+    padding-left: 15px;
+    font-size: 24px;
+    line-height: 40px;
+    border-bottom: solid 1px gray;
+}
+
+.layers li.activelayer {
+    background-color: rgb(129, 214, 255);
+    border-radius: 3px;
+}
+
+.layers li.activelayer:before {
+    font-family: "Font Awesome 5 Free";
+    content: "\f0da";
+    margin-right: 5px;
+    font-weight: 900;
+}
+
+.layers li .number {
+    color: lightgoldenrodyellow;
+    border-radius: 3px;
+    background-color: red;
+    padding-left: 3px;
+    padding-right: 3px;
+    margin-right: 5px;
+}
+
+.layers li .layername { flex-grow: 1; }
+.layers li a { 
+    text-decoration: none;
+    line-height: 40px;
+    color: black;
+}
+
+.layers li input[type=radio], .layers li input[type=checkbox] { display: none;}
+
+.layers li input[type=checkbox] + .visibleButton:before {
+  content: '\f070';
+  opacity: 0.5;
+}  
+
+.layers li input[type=checkbox]:checked + .visibleButton:before {
+  content: '\f06e';
+  opacity: 1.0;
+}
+
+.layers li button {
+    margin: 5px;
+}
+
+.status-message {
+    color: red;
+}
+
+/* Keep this at the end to override previous rules */
+.form-controls .inputfield.hidden { display: none; }
+
+footer {
+    font-style: italic;
+}
+
+li.hidden {
+    display: none;
+}

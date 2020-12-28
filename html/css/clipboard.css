@@ -1,0 +1,8 @@
+.copy-clipboard {
+  cursor: pointer;
+  transition: color 0.5s;
+}
+
+.copy-clipboard:hover {
+  color: teal;
+}

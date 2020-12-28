@@ -1,686 +1,250 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
+
 <head>
-	<meta charset="utf-8">
-	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<meta name="description" content="Spatial data generator developed at UC Riverside by Puloma Katiyar under guidance of Dr. Ahmed Eldawy">
-	<meta name="keywords" content="Spatial data, data generator, UCR, UC Riverside, UCR big data lab, test data, Puloma Katiyar, Ahmed Eldawy, computer science">
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
-	<link rel="shortcut icon" href="sd.ico">
-	<link href="//code.jquery.com/ui/1.10.4/themes/smoothness/jquery-ui.css" rel="stylesheet">
-	<script src="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.3.1/build/ol.js"></script>
-	<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.3.1/css/ol.css">
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-	<style type="text/css">
-		.headcol { vertical-align: top; text-align: right; }
-		.widgettab { vertical-align: top; text-align: left; }
-		.bigtab { } 
-		.pagehead { text-align: center; }
-		.optionlabel1 { text-align: right; }
-		.optiondata1 { }
-		.optionlabel2 { text-align: right; }
-		.optiondata2 { }
-		.inputField { width: 7vw; }
-		.hide { position:absolute; top:-1px; left:-1px; width:1px; height:1px; }
-		.inputError { color: red; font-size: 15px; }
-		.transformfields { text-align: right; }
-		#dataContent { width: 30em; height: 30em; }
-		.right-rail-list {
-			height: 25em;
-			line-height: 1em;
-			overflow: scroll;
-		}
-	</style>
+ <meta charset="utf-8">
+ <meta http-equiv="X-UA-Compatible" content="IE=edge">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <meta name="description"
+  content="Spatial data generator developed at UC Riverside by Puloma Katiyar under guidance of Dr. Ahmed Eldawy">
+ <meta name="keywords"
+  content="Spatial data, data generator, UCR, UC Riverside, UCR big data lab, test data, Puloma Katiyar, Ahmed Eldawy, computer science">
+ <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 
-	<title>SpiderWeb: A Spatial Data Generator on the Web</title>
-	
-	<script>
-		var colorNames = ["blue", "red", "green", "orange", "black", "purple", "gray", "brown", "gold"];
-		var curColorIdx = 0;
-		layerList = [];
-		curLayerIdx = 0;
-		nextLayerIdx = 1;
+ <link rel="shortcut icon" href="sd.ico">
+ <!-- jQuery -->
+ <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 
-		var fEnableObj = {
-			"perc": "diagonal",
-			"buf": "diagonal",
-			"prob": "bit",
-			"dig": "bit",
-			"sran": "parcel",
-			"dith": "parcel",
-			"dim": "uniform"
-		}
-	
-		function disableInputs() {
-			var distType = $("#dist").val();
-			if(fEnableObj.perc != distType)
-				$("#per").prop("disabled", true);
-			if(fEnableObj.buf != distType)
-				$("#buf").prop("disabled", true);
-			if(fEnableObj.prob != distType)
-				$("#prob").prop("disabled", true);
-			if(fEnableObj.dig != distType)
-				$("#dig").prop("disabled", true);
-			if(fEnableObj.sran != distType)
-				$("#sran").prop("disabled", true);
-			if(fEnableObj.dith != distType)
-				$("#dith").prop("disabled", true);
-			if(fEnableObj.dim != distType)
-				$("#dim").prop("disabled", true);				
-		}
-		
-		function updateInputs() {
-			if($("#dist").val() != "uniform")
-				$("#dim").val(2);
-			$("#dim").prop("disabled", false);	
-			$("#per").prop("disabled", false);
-			$("#buf").prop("disabled", false);
-			$("#prob").prop("disabled", false);
-			$("#dig").prop("disabled", false);
-			$("#sran").prop("disabled", false);
-			$("#dith").prop("disabled", false);
-			disableInputs();
-		}
-		
-		function validInputs() {
-			var valid = true;
-			var val = $("#card").val();
-			if(val < 0 || val > 1000000000000) { // arbitrarily set max to 1 trillion
-				$("#cardInputError").html("Valid val > 0 and < 1 trillion");
-				valid = false;
-			} else
-				$("#cardInputError").html("");
-			val = $("#dim").val();
-			if($("#dist").val() == "uniform") {
-				if(val < 1 || val > 1000000) { // arbitrarily set max to 1 million
-					$("#dimInputError").html("Valid val > 1 and < 1 million");
-					valid = false;
-				} else
-					$("#dimInputError").html("");
-			} else {
-				if(val != 2) { 
-					$("#dimInputError").html("Valid val = 2");
-					valid = false;
-				} else
-					$("#dimInputError").html("");
-			}
-			val = $("#per").val();
-			if(val < 0 || val > 1) {
-				$("#perInputError").html("Valid val > 0 and < 1");
-				valid = false;
-			} else
-				$("#perInputError").html("");
-			val = $("#buf").val();
-			if(val < 0 || val > 1) {
-				$("#bufInputError").html("Valid val > 0 and < 1");
-				valid = false;
-			} else
-				$("#bufInputError").html("");
-			val = $("#prob").val();
-			if(val < 0 || val > 1) {
-				$("#probInputError").html("Valid val > 0 and < 1");
-				valid = false;
-			} else
-				$("#probInputError").html("");
-			val = $("#dig").val();
-			if(val < 0 || val > 100000) {
-				$("#digInputError").html("Valid val >= 0 and < 100,000");
-				valid = false;
-			} else
-				$("#digInputError").html("");				
-			val = $("#sran").val();
-			if(val < 0 || val > 1) {
-				$("#sranInputError").html("Valid val > 0 and < 1");
-				valid = false;
-			} else
-				$("#sranInputError").html("");				
-			val = $("#dith").val();
-			if(val < 0 || val > 1) {
-				$("#dithInputError").html("Valid val > 0 and < 1");
-				valid = false;
-			} else 
-				$("#dithInputError").html("");
-			val = $("#seed").val();
-			if(val && (val < 0 || val > 100000000000000)) { // arbitrarily set max to 100 trillion
-				$("#seedInputError").html("Valid val >= 0 and < 1 trillion");
-				valid = false;
-			} else
-				$("#seedInputError").html("");					
-			return valid;
-		}
-		
-		function buildURL(forRender, forPlink) {
-			var paramVals = formToJSON();
-			if (paramVals.a1 || paramVals.a2 || paramVals.a3 || paramVals.a4 || paramVals.a5 || paramVals.a6) {
-				if (!paramVals.a1 || !paramVals.a2 || !paramVals.a3 || !paramVals.a4 || !paramVals.a5 || !paramVals.a6) {
-					$("#transformMessage").html("Fill all values for transformation");
-					return null;
-				}
-			}
-			paramVals["geo"] = "point";
+ <!-- open layers -->
+ <script src="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.3.1/build/ol.js"></script>
+ <script
+  src="https://cdn.polyfill.io/v2/polyfill.min.js?features=requestAnimationFrame,Element.prototype.classList,URL"></script>
+ <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.3.1/css/ol.css">
+ <!-- FontAwesome -->
+ <script src="https://kit.fontawesome.com/4ddd5e62e6.js" crossorigin="anonymous"></script>
+ <!-- Spider content -->
+ <link rel="stylesheet" href="css/spider.css">
+ <script src="js/spider.js"></script>
+ <!-- Copy to clipboard functionality -->
+ <link rel="stylesheet" href="css/clipboard.css" type="text/css">
+ <script src="js/clipboard.js"></script>
 
-			if(forRender) {
-				var message = "";
-				if(paramVals["card"] > 1000) {
-					paramVals["card"] = 1000;
-					message += "Only up to 1000 points supported for visualization. Cardinality overridden.";
-				}
-				if(paramVals["dim"] != 2) {
-					paramVals["dim"] = 2;
-					if(message)
-						message += "<br>";
-					message += "Only 2D supported for visualization. Dimensions overridden.";
-				}
-				paramVals["fmt"] = "wkt";
-				paramVals["strm"] = "browser";
-				if(!forPlink)
-					paramVals["render"] = 1;
-				$("#renderMessage").html(message);
-			} else {
-				paramVals["strm"] = "cfile";
-				if(!forPlink)
-					paramVals["render"] = 0;
-			}
-			
-			if(!paramVals["seed"]) {
-				var d = new Date();
-				paramVals["seed"] = d.getTime();
-			}
-			
-			var curUrl = window.location.href;
-			if(forPlink) {
-				var url = curUrl;
-			}
-			else {
-				var endPos = curUrl.indexOf("index.html");
-				var url = curUrl.substring(0, endPos) + "cgi/generator.py?";
-			}
-			for(var key in paramVals) {
-				url += (key + "=" + encodeURIComponent(paramVals[key]) + "&");
-			}						
-			return url;																			
-		}
-		
-		function submitAndDownload() {
-			var downloadURL = buildURL(false, false);
-			// downloadOrError element does double duty here to show error or pop-up file-save dialog
-			document.getElementById("downloadOrError").src = downloadURL;
-		}
+ <title>SpiderWeb: A Spatial Interactive Data Generator on the Web</title>
+ <script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag() { dataLayer.push(arguments); }
+  gtag('js', new Date());
 
-		function disableActionButtons(propBool) {
-			$("#downloadButton").prop("disabled", propBool);
-			$("#refreshButton").prop("disabled", propBool);
-			$("#addLayerButton").prop("disabled", propBool);
-		}
-		
-		function addLayer() {
-			disableActionButtons(true);
-			layerList.push({});
-			if(curLayerIdx >= 0)
-				$("#" + layerList[curLayerIdx].listItemId).removeClass("active");
-			curLayerIdx = layerList.length - 1;
-			var listItemId = "lla" + nextLayerIdx;
-			layerList[curLayerIdx] = {
-				listItemId: listItemId,
-				name: "Layer " + (nextLayerIdx),
-				enabled: true,
-				layerData: null,
-				layerParams: formToJSON(),
-				drawColor: null
-			}
-			nextLayerIdx++;
-			var listHTML = '<a id="' + listItemId 
-                + '" class="list-group-item list-group-item-action active">'
-				+ '<div class="d-flex w-100 justify-content-between">'
-                + '<label>'
-				+ '<input class="" type="checkbox" id="' + listItemId + 'check" checked/>'
-                + layerList[curLayerIdx].name + '</label>'
-				// + '<button type="button" id="' + listItemId + 'buttonR"><span class="ui-icon ui-icon-pin-s"></span></button>'
-				// + '<button type="submit" form="datareq" id="' + listItemId + 'button"><span class="ui-icon ui-icon-arrowrefresh-1-e"></span></button>'
-				+ '<button type="button" id="' + listItemId + 'buttonX"><span class="ui-icon ui-icon-close"></span></button>'
-                + '</div></a>';
-			$("#layerList").append(listHTML);
-			$("#" + listItemId).click(function (e) {restoreLayer(listItemId);});
-			$("#" + listItemId + "check").click(function (e) {toggleLayerVisibility(listItemId);});
-			$("#" + listItemId + "buttonX").click(function (e) {deleteLayer(listItemId);});
-		}
-
-		function restoreLayer(listItemId) {
-			$("#" + layerList[curLayerIdx].listItemId).removeClass("active");
-			$("#" + listItemId).addClass("active");
-			var layer = null;
-			layerList.forEach(function (item, index) {
-				if(item["listItemId"] == listItemId) {
-					layer = item;
-					curLayerIdx = index;
-				}
-			});
-			JSONToForm(layer.layerParams);
-			updateInputs();
-		}
-		
-		function toggleLayerVisibility(listItemId) {
-			var layer = null;
-			layerList.forEach(function (item, index) {
-				if(item["listItemId"] == listItemId) {
-					layer = item;
-				}
-			});
-			layer.enabled = !layer.enabled;
-			renderData();
-		}
-
-		function deleteLayer(listItemId) {
-			if(!confirm("Are you sure you want to delete this layer?"))
-				return;
-			var layerIndex = -1;
-			layerList.forEach(function (item, index) {
-				if(item["listItemId"] == listItemId) {
-					layerIndex = index;
-				}
-			});
-			$("#" + listItemId).remove();
-			layerList.splice(layerIndex, 1);
-			if(layerIndex <= curLayerIdx)
-				curLayerIdx--;
-			if (layerList.length <= 0) {
-				$("#refreshButton").prop("disabled", true);
-				$("#downloadButton").prop("disabled", true);
-			}
-			if(layerList.length > 0)
-				restoreLayer(layerList[curLayerIdx].listItemId);
-			renderData();
-		}
-
-		function submitAndRender() {
-			var dataURL = buildURL(true, false);
-			if (dataURL == null)
-				return;
-			var permalink = buildURL(false, true);
-			$("#plink").html(permalink);
-
-			var XHR = new XMLHttpRequest();
-			XHR.addEventListener( 'load', function(event) {
-				if(XHR.status != 200) {
-					$("#renderMessage").html(`Error ${XHR.status}: ${XHR.statusText}`);
-					return;
-				}
-				$("#dataContent").html("");
-
-				layerList[curLayerIdx].drawColor = colorNames[curColorIdx % colorNames.length];
-                var vectorLayer = new ol.layer.Vector({
-                    source: new ol.source.Vector({
-                        features: (new ol.format.WKT()).readFeatures(XHR.responseText)
-                    }),
-					style: new ol.style.Style({
-						stroke: new ol.style.Stroke({
-							color: layerList[curLayerIdx].drawColor,
-							width: 1
-						}), 
-						image: new ol.style.Circle({
-							radius: 2,
-							fill: new ol.style.Fill({
-								color: layerList[curLayerIdx].drawColor
-							})
-						}),
-					})
-                });
-				layerList[curLayerIdx].layerData = vectorLayer;
-				renderData();
-				disableActionButtons(false);
-			});
-			XHR.addEventListener( 'error', function(event) {
-				$("#renderMessage").html(`Error ${XHR.status}: ${XHR.statusText}`);
-			});
-			XHR.open( 'GET', dataURL);
-			XHR.send(null);
-		}
-
-		function renderData() {
-			newLayers = getEnabledLayersData();
-			$("#dataContent").html("");
-			var view = new ol.View({
-				center: [0.5, 0.5],
-				zoom: 26
-			});
-			
-			var map = new ol.Map({
-				controls: ol.control.defaults().extend([
-					new ol.control.ZoomToExtent({
-					extent: [
-						-0.05,
-						-0.05,
-						1.05,
-						1.05 ],
-					label: "C",
-					tipLabel: "Re-center map"
-				}) ]),
-				target: 'dataContent',
-				layers: newLayers,
-				view: view
-			});
-		}
-		
-		function getEnabledLayersData() {
-			var enabledLayers = [];
-			layerList.forEach(function(item, index) {
-				if(item.enabled)
-					enabledLayers.push(item.layerData);
-			});
-			return enabledLayers;
-		}
-		
-		function setupSubmitAndRender() {
-			$(function () {
-				$('[data-toggle="tooltip"]').tooltip()
-			})
-			var curURL = new URL(window.location);
-			var paramString = new URLSearchParams(curURL.searchParams);
-			if(paramString != "") {
-				if(paramString.has("dist"))
-					$('#dist').val(paramString.get("dist"));
-				if(paramString.has("card"))
-					$('#card').val(paramString.get("card"));
-				if(paramString.has("dim"))
-					$('#dim').val(paramString.get("dim"));
-				if(paramString.has("fmt"))
-					$('#fmt').val(paramString.get("fmt"));
-				if(paramString.has("per"))
-					$('#per').val(paramString.get("per"));
-				if(paramString.has("buf"))
-					$('#buf').val(paramString.get("buf"));
-				if(paramString.has("prob"))
-					$('#prob').val(paramString.get("prob"));
-				if(paramString.has("dig"))
-					$('#dig').val(paramString.get("dig"));
-				if(paramString.has("sran"))
-					$('#sran').val(paramString.get("sran"));
-				if(paramString.has("dith"))
-					$('#dith').val(paramString.get("dith"));
-				if(paramString.has("seed"))
-					$('#seed').val(paramString.get("seed"));
-				if(paramString.has("a1"))
-					$('#a1').val(paramString.get("a1"));
-				if(paramString.has("a2"))
-					$('#a2').val(paramString.get("a2"));
-				if(paramString.has("a3"))
-					$('#a3').val(paramString.get("a3"));
-				if(paramString.has("a4"))
-					$('#a4').val(paramString.get("a4"));
-				if(paramString.has("a5"))
-					$('#a5').val(paramString.get("a5"));
-				if(paramString.has("a6"))
-					$('#a6').val(paramString.get("a6"));
-			}
-			addLayer();
-			updateInputs();
-			if(validInputs())
-				submitAndRender();
-		}
-
-		function formToJSON() {
-			var paramVals = {};
-			var varNames = ["dist", "dim", "card", "fmt", "seed", "per", "buf", "prob", "dig", "sran", "dith", "a1", "a2", "a3", "a4", "a5", "a6"];
-			varNames.forEach(function(item, index) {
-				var inputVal = $("#" + item).val();
-				if(inputVal)
-					paramVals[item] = inputVal;
-			});
-			return paramVals;
-		}
-
-		function JSONToForm(paramVals) {
-			for(var key in paramVals) {
-				if(paramVals.hasOwnProperty(key)) {
-					$("#" + key).val(paramVals[key]);
-				}
-			}
-		}
-
-		function copyClipboard() {
-			var copyText = document.getElementById("plink");
-			copyText.select();
-  			copyText.setSelectionRange(0, 99999);
-			document.execCommand("copy");
-		}
-		
-	</script>
-
+  gtag('config', 'G-VN03SLSYZE');
+ </script>
 </head>
 
-<body style="background-color:#f2f4f7;" onload="setupSubmitAndRender()">
-	<h1 class="pagehead" style="border-bottom: 5px solid #f9b00fff; margin: 0;"><img src="images/spider-logo.png" width="128">SPIDER: Spatial Data Generator</h1>
-	<h1 style="border-top: solid 5px #1e54a8ff;
-    margin: 0;
-    padding: 0;
-    margin-bottom: 10px;"></h1>
-	<table class="bigtab">
-		<tbody>
-			<tr>
-				<td width="40%">
-					<form id="datareq" action="javascript:void(0);" onSubmit="if(validInputs()) submitAndRender();">
-						<table  border="0" cellspacing="10">
-							<tbody>
-								<tr>
-									<td class="optionlabel1">
-										Distribution: <div class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="The distribution type of the data" style="display: inline-block"></div>
-									</td>
-									<td class="optiondata1">
-										<select id="dist" name="dist" onchange="updateInputs()">
-											<option value="uniform">Uniform</option>
-											<option value="diagonal">Diagonal</option>
-											<option value="gaussian">Gaussian</option>
-											<option value="sierpinski">Sierpinski</option>
-											<option value="bit">Bit</option>
-											<option value="parcel">Parcel</option>
-										</select>
-									</td>
-									<td class="optionlabel2">
-										Cardinality: <div class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="The number of records to generate" style="display: inline-block"></div>
-									</td>
-									<td class="optiondata2">
-										<input class="inputField" type="number" value="100" id="card" name="card"></input>
-										<div class="inputError" id="cardInputError"></div>
-									</td>
-								</tr>
-								
-								<tr>
-									<td class="optionlabel1">
-										Dimension: <div class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="The dimensionality of the generated geometries. Only 2D data is supported for rendering." style="display: inline-block"></div>
-									</td>
-									<td class="optiondata1">
-										<input class="inputField"  type="number" value="2" id="dim" name="dim"></input>
-										<div class="inputError" id="dimInputError"></div>
-									</td>					
-									
-									<td class="optionlabel2">
-										Format: <div class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="Output format of data" style="display: inline-block"></div>
-									</td>
-									<td class="optiondata2">
-										<select id="fmt" name="fmt">
-											<option value="wkt">wkt</option>
-											<option value="csv">csv</option>
-											<option value="gjson">geoJSON</option>
-										</select>
-									</td>
-								</tr>
-								
-								<tr>
-									<td class="optionlabel1">
-										Percentage: <div class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="Diagonal distribution: The percentage (ratio) of the points that are exactly on the line." style="display: inline-block"></div>
-									</td>
-									<td class="optiondata1">
-										<input class="inputField"  type="text" value="0.5" id="per" name="per"></input>
-										<div class="inputError" id="perInputError"></div>
-									</td>
-									<td class="optionlabel2">
-										Buffer: <div class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="Diagonal distribution: The size of the buffer around the line where additional geometries are scattered." style="display: inline-block"></div>
-									</td>
-									<td class="optiondata2">
-										<input class="inputField"  type="text" value="0.5" id="buf" name="buf"></input>
-										<div class="inputError" id="bufInputError"></div>
-									</td>
-								</tr>
-								
-								<tr>
-									<td class="optionlabel1">
-										Probability: <div class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="Bit distribution: The probability of setting each bit independently to 1." style="display: inline-block"></div>
-									</td>
-									<td class="optiondata1">
-										<input class="inputField"  type="text" value="0.2" id="prob" name="prob"></input>
-										<div class="inputError" id="probInputError"></div>
-									</td>
-									<td class="optionlabel2">
-										Digits: <div class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="Bit distribution: The number of binary digits after the fraction point." style="display: inline-block"></div>
-									</td>
-									<td class="optiondata2">
-										<input class="inputField"  type="number" value="10" id="dig" name="dig"></input>
-										<div class="inputError" id="digInputError"></div>
-									</td>
-								</tr>
-								
-								<tr>
-									<td class="optionlabel1">
-										Split range: <div class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="Parcel distribution: The minimum tiling range for splitting a box. r = 0 indicates that all the ranges are allowed while r = 0.5 indicates that a box is always split into half." style="display: inline-block"></div>
-									</td>
-									<td class="optiondata1">
-										<input class="inputField"  type="text" value="0.5" id="sran" name="sran"></input>
-										<div class="inputError" id="sranInputError"></div>
-									</td>
-									<td class="optionlabel2">
-										Dither: <div class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="Parcel distribution: The dithering parameter that adds some random noise to the generated rectangles. d = 0 indicates no dithering and d = 1.0 indicates maximum dithering that can shrink rectangles down to a single point." style="display: inline-block"></div>
-									</td>
-									<td class="optiondata2">
-										<input class="inputField"  type="text" value="0.5" id="dith" name="dith"></input>
-										<div class="inputError" id="dithInputError"></div>
-									</td>
-								</tr>
-								
-								<tr>
-									<td class="optionlabel1">
-										Seed value: <div class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="No input will randomize data, any other value reproduces the same data" style="display: inline-block"></div>
-									</td>
-									<td class="optiondata1">
-										<input class="inputField" type="number" id="seed" name="seed"></input>
-										<div class="inputError" id="seedInputError"></div>
-									</td>
-								</tr>
-								
-								
-								<tr>
-									<td colspan="4" align="center">
-										Affine transformation parameters <div class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="Identity matrix (a1, a5 = 1; others = 0) maintains same values" style="display: inline-block"></div>
-									</td>
-								</tr>
-								
-								<tr>
-									<td class="optionlabel1">
-										a1 (Sx): <div class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="Scaling x-axis" style="display: inline-block"></div>
-									</td>
-									<td class="optiondata1">
-										<input class="inputField" type="text" id="a1" name="a1"></input>
-									</td>
-									<td class="optionlabel2">
-										a2 (Rx): <div class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="Rotation x-axis" style="display: inline-block"></div>
-									</td>
-									<td class="optiondata2">
-										<input class="inputField" type="text" id="a2" name="a2"></input>
-									</td>
-								</tr>
-								
-								<tr>
-									<td class="optionlabel1">
-										a3 (Tx): <div class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="Translation x-axis" style="display: inline-block"></div>
-									</td>
-									<td class="optiondata1">
-										<input class="inputField" type="text" id="a3" name="a3"></input>
-									</td>
-									<td class="optionlabel2">
-										a4 (Ry): <div class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="Rotation y-axis" style="display: inline-block"></div>
-									</td>
-									<td class="optiondata2">
-										<input class="inputField" type="text" id="a4" name="a4"></input>
-									</td>
-								</tr>
-								
-								<tr>
-									<td class="optionlabel1">
-										a5 (Sy): <div class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="Scaling y-axis" style="display: inline-block"></div>
-									</td>
-									<td class="optiondata1">
-										<input class="inputField" type="text" id="a5" name="a5"></input>
-									</td>
-									<td class="optionlabel2">
-										a6 (Ty): <div class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="Translation y-axis" style="display: inline-block"></div>
-									</td>
-									<td class="optiondata2">
-										<input class="inputField" type="text" id="a6" name="a6"></input>
-									</td>
-								</tr>
-								
-								<tr>
-									<td colspan="4">
-										<div id="transformMessage" name="transformMessage" align="center" style="color: red;"> </div>
-									</td>
-								</tr>
-								
-								
-								<tr>
-									<td colspan="4" align="center">
-										<table>
-											<tr>
-												<td>
-													<button type="button" id="addLayerButton" onclick="curColorIdx++; addLayer(); if(validInputs()) submitAndRender();">Add Layer</button>
-												</td>
-												<td>
-													<button type="submit" id="refreshButton">Refresh Layer</button>
-												</td>
-												<td>
-													<button type="button" id="downloadButton" onclick="submitAndDownload()">Download Layer</button>
-												</td>
-											</tr>
-										</table>
-									</td>
-								</tr>
+<body>
+ <header>
+  <h1>Spider: Spatial Interactive Data Generator</h1>
+  <div></div>
+ </header>
+ <main>
+  <section class="controlpanel">
+   <section>
+    <nav class="layerlistholder">
+     <h2>
+      <span>Datasets</span>
+      <button value="addlayer" id="addLayerButton">Add</button>
+     </h2>
+     <!-- This will include the layers and will be maintained at runtime -->
+     <ul class="layers">
+      <!-- Each layer will be added as an <li> element at runtime -->
+      <li class="template hidden">
+       <label class="layername"><input type="radio" name="activedataset" value="layer#" /><span class="number"></span><span class="name">Dataset #</span></label>
+       <input type="checkbox" checked="checked" />
+       <a href="#" class="fas visibleButton" title="Show/Hide dataset"></a>&nbsp;
+       <a href="#" class="fas fa-expand-arrows-alt zoomAllButton" title="Zoom to this dataset"></a>&nbsp;
+       <a href="#" class="fas fa-download downloadButton" title="Download dataset"></a>&nbsp;
+       <a href="#" class="fa fa-trash deleteButton" title="Remove dataset"></a>
+      </li>
+     </ul>
+    </nav>
+    <!-- List here the distribution parameters -->
+    <form id="data-form" method="GET" action="cgi/generator.py">
+     <div id="generation-info" class="form-controls">
+      <h2 class="section-heading tooltip" title="Specify parameters for data generation">Distribution
+       of the selected dataset</h2>
+      <!-- Distribution -->
+      <label class="inputfield">
+       <span class="tooltip" title="The distribution type of the data">Distribution</span>
+       <select id="distribution" name="distribution">
+        <option value="uniform">Uniform</option>
+        <option value="diagonal">Diagonal</option>
+        <option value="gaussian">Gaussian</option>
+        <option value="sierpinski">Sierpinski</option>
+        <option value="bit">Bit</option>
+        <option value="parcel">Parcel</option>
+       </select>
+      </label>
+      <!-- Cardinality -->
+      <label class="inputfield">
+       <span class="tooltip" title="The number of records to generate">Cardinality</span>
+       <input type="number" value="100" name="cardinality" />
+      </label>
+      <!-- Dimension -->
+      <input type="hidden" value="2" name="dimensions" />
+      <!-- Percentage -->
+      <label class="inputfield small">
+       <span class="tooltip"
+        title="Diagonal distribution: The percentage (ratio) of the points that are exactly on the line.">Percentage</span>
+       <input type="text" value="0.5" name="percentage" />
+      </label>
+      <!--  Buffer -->
+      <label class="inputfield small">
+       <span class="tooltip"
+        title="Diagonal distribution: The size of the buffer around the line where additional geometries are scattered.">Buffer</span>
+       <input type="text" value="0.5" name="buffer" />
+      </label>
+      <!-- Probability -->
+      <label class="inputfield small">
+       <span class="tooltip"
+        title="Bit distribution: The probability of setting each bit independently to 1.">Probability</span>
+       <input type="text" value="0.2" name="probability" />
+      </label>
+      <!-- Digits -->
+      <label class="inputfield small">
+       <span class="tooltip"
+        title="Bit distribution: The number of binary digits after the fraction point.">Digits</span>
+       <input type="number" value="10" name="digits" />
+      </label>
+      <!-- Split range -->
+      <label class="inputfield small">
+       <span class="tooltip"
+        title="Parcel distribution: The minimum tiling range for splitting a box. r = 0 indicates that all the ranges are allowed while r = 0.5 indicates that a box is always split into half.">Split
+        range</span>
+       <input type="text" value="0.5" name="srange" />
+      </label>
+      <!-- Dither -->
+      <label class="inputfield small">
+       <span class="tooltip"
+        title="Parcel distribution: The dithering parameter that adds some random noise to the generated rectangles. d = 0 indicates no dithering and d = 1.0 indicates maximum dithering that can shrink rectangles down to a single point.">Dither</span>
+       <input type="text" value="0.5" name="dither" />
+      </label>
+      <!-- Seed value -->
+      <label class="inputfield small">
+       <span class="tooltip" title="No input will randomize data, any other value reproduces the same data">Seed
+        value</span>
+       <input type="number" name="seed" />
+      </label>
+      <!-- Geometry type -->
+      <label class="inputfield">
+       <span class="tooltip" title="Type of geometry to generate">Geometry</span>
+       <select id="geometry" name="geometry">
+        <option value="point" id="geometry-point">Point</option>
+        <option value="box" id="geometry-box">Box</option>
+       </select>
+      </label>
+      <!-- Max width -->
+      <label class="inputfield maxsize small">
+       <span class="tooltip" title="Maximum width of a box [0.0, 1.0]">Max Width</span>
+       <input type="number" name="maxsize0" value="0.01"/>
+      </label>
+      <!-- Max height-->
+      <label class="inputfield maxsize small">
+       <span class="tooltip" title="Maximum height of a box [0.0, 1.0]">Max Height</span>
+       <input type="number" name="maxsize1" value="0.01"/>
+      </label>
+      <!-- Download format -->
+      <label class="inputfield">
+       <span class="tooltip" title="Output format of data">Format</span>
+       <select id="format" name="format">
+        <option value="csv">CSV</option>
+        <option value="wkt">WKT</option>
+        <option value="geojson">GeoJSON</option>
+       </select>
+      </label>
+     </div>
+     <div id="affine-transform">
+      <h2 class="section-heading tooltip" title="Identity matrix (a1, a5 = 1; others = 0) maintains same values">
+       Affine matrix (Click to expand)
+      </h2>
+      <div class="form-controls hidden">
+       <!-- a1 (Sx) -->
+       <label class="inputfield small">
+        <span class="tooltip" title="Scaling x-axis">a1 (Sx)</span>
+        <input type="text" name="a1" placeholder="1.0" />
+       </label>
+       <!-- a2 (Rx) -->
+       <label class="inputfield small">
+        <span class="tooltip" title="Shearing x-axis">a2 (Rx)</span>
+        <input type="text" name="a2" placeholder="0.0" />
+       </label>
+       <!-- a3 (Tx) -->
+       <label class="inputfield small">
+        <span class="tooltip" title="Translation x-axis">a3 (Tx)</span>
+        <input type="text" name="a3" placeholder="0.0" />
+       </label>
+       <!-- a4 (Ry) -->
+       <label class="inputfield small">
+        <span class="tooltip" title="Shearing y-axis">a4 (Ry)</span>
+        <input type="text" name="a4" placeholder="0.0" />
+       </label>
+       <!-- a5 (Sy) -->
+       <label class="inputfield small">
+        <span class="tooltip" title="Scaling y-axis">a5 (Sy)</span>
+        <input type="text" name="a5" placeholder="1.0" />
+       </label>
+       <!-- a6 (Ty) -->
+       <label class="inputfield small">
+        <span class="tooltip" title="Translation y-axis">a6 (Ty)</span>
+        <input type="text" name="a6" placeholder="0.0" />
+       </label>
+      </div>
+     </div>
+     <!-- Placeholder to display any info or error messages -->
+     <div class="status-message"></div>
+    </form>
+   </section>
+   <aside class="share">
+    <h2 class="section-heading">
+     <span>More ways to access selected dataset</span>
+    </h2>
+    <div id="permalink">
+     <span class="tooltip" title="A permanent link for the current dataset that you can bookmark or share">Permalink</span>
+     <div class="code-container">
+      <textarea class="permalink" readonly="readonly"></textarea>
+      <span class="copy-clipboard fa fa-copy" data-target=".permalink"></span>
+     </div>
+    </div>
+    <div id="python">
+     <span class="tooltip" title="Code to generate this dataset using the open-source Python script">Python Code</span>
+     <div class="code-container">
+      <textarea class="python-code" readonly="readonly"></textarea>
+      <span class="copy-clipboard fa fa-copy" data-target=".python-code"></span>
+     </div>
+    </div>
+    <div id="spark">
+     <span class="tooltip" title="Code to generate this dataset in parallel in Spark using Beast">Spark Code
+      <a href="https://bitbucket.org/eldawy/beast/wiki/spatial-data-generator" target="_blank">(Instructions)</a></span>
+     <div class="code-container">
+      <textarea class="spark-code" readonly="readonly"></textarea>
+      <span class="copy-clipboard fa fa-copy" data-target=".spark-code"></span>
+     </div>
+    </div>
+    <div>
+     <span class="tooltip" title="Citation of the data">If you use Spider, please cite:</span>
+     <div class="code-container">
+      <textarea class="citation" readonly="readonly">Puloma Katiyar, Tin Vu, Sara Migliorini, Alberto Belussi, Ahmed Eldawy. &quot;SpiderWeb: A Spatial Data Generator on the Web&quot;, ACM SIGSPATIAL 2020, Seattle, WA</textarea>
+      <span class="copy-clipboard fa fa-copy" data-target=".citation"></span>
+     </div>
+    </div>
+   </aside>
+  </section>
+  <section class="visualization">
+   <!-- Include the visualization -->
+   <div id="data-content"></div>
+  </section>
+ </main>
+ <footer>
+  <span>Copyright &copy; 2020 UC Riverside</span>
+ </footer>
 
-								<tr>
-									<td >
-										Permalink:
-									</td>
-									<td >
-										<textarea type="text" id="plink" name="plink" rows="2" cols="17" readonly></textarea>  <i class="fa fa-files-o" onclick="copyClipboard()" data-toggle="tooltip" data-placement="bottom" title="Copy to clipboard" style="display: inline-block"></i>
-									</td>
-								</tr>
-							</tbody>
-						</table>
-					</form>
-				</td>
-				<td width="40%" style="background-color: white; border: 2px solid black">
-					<div id="downloadErrorDiv" name="downloadErrorDiv"> 
-						<iframe id="downloadOrError" name="downloadOrError" class="hide"> </iframe> 
-					</div>
-					<div id="renderMessage" name="renderMessage" style="color: red"> </div>
-						
-					<div id="dataContent" name="dataContent" align="left">
-						Data will be rendered here.
-						<iframe id="resultData" name="resultData" class="hide"></iframe>
-					</div>
-				</td>
-				<td width="20%" style="vertical-align:top">
-					<div id="layerList" class="list-group right-rail-list">
-					</div>
-			</td>
-			</tr>
-		</tbody>
-	</table>
-	<h4 class="pagehead">Developed at UC Riverside Big Data Lab</h4>
-	<h5 class="pagehead">By Puloma Katiyar, Tin Vu, Ahmed Eldawy, Sara Migliorini, Alberto Belussi</h5>
-	
-	<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
-	<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
-	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js" integrity="sha384-B4gt1jrGC7Jh4AgTPSdUtOBvfO8shuf57BaghqFfPlYxofvL8/KUEfYiJOMMV+rV" crossorigin="anonymous"></script>
-</body>	
+</body>
+
 </html>
-

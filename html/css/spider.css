@@ -67,6 +67,8 @@ main {
     background-color: rgba(255, 255, 255, 0.4);
     background-blend-mode: lighten;
     border-right: solid 2px rgb(30, 84, 168);
+    display: flex;
+    flex-direction: column;
 }
 
 #affine-transform, .share, #generation-info {
@@ -280,9 +282,7 @@ main {
 /* Keep this at the end to override previous rules */
 .form-controls .inputfield.hidden { display: none; }
 
-footer {
-    font-style: italic;
-}
+footer { font-style: italic; }
 
 li.hidden {
     display: none;

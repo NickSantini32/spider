@@ -11,14 +11,13 @@
   content="Spatial data, data generator, UCR, UC Riverside, UCR big data lab, test data, Puloma Katiyar, Ahmed Eldawy, computer science">
  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 
- <link rel="shortcut icon" href="sd.ico">
+ <link rel="shortcut icon" href="spider.ico">
  <!-- jQuery -->
  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 
  <!-- open layers -->
  <script src="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.3.1/build/ol.js"></script>
- <script
-  src="https://cdn.polyfill.io/v2/polyfill.min.js?features=requestAnimationFrame,Element.prototype.classList,URL"></script>
+ <script src="https://cdn.polyfill.io/v2/polyfill.min.js?features=requestAnimationFrame,Element.prototype.classList,URL"></script>
  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.3.1/css/ol.css">
  <!-- FontAwesome -->
  <script src="https://kit.fontawesome.com/4ddd5e62e6.js" crossorigin="anonymous"></script>
@@ -30,6 +29,7 @@
  <script src="js/clipboard.js"></script>
 
  <title>SpiderWeb: A Spatial Interactive Data Generator on the Web</title>
+ <!-- Google Analytics code -->
  <script>
   window.dataLayer = window.dataLayer || [];
   function gtag() { dataLayer.push(arguments); }
@@ -66,7 +66,7 @@
      </ul>
     </nav>
     <!-- List here the distribution parameters -->
-    <form id="data-form" method="GET" action="/cgi/generator.py">
+    <form id="data-form" method="GET" action="cgi/generator.py">
      <div id="generation-info" class="form-controls">
       <h2 class="section-heading tooltip" title="Specify parameters for data generation">Distribution parameters</h2>
       <!-- Distribution -->

@@ -59,7 +59,7 @@ jQuery(function() {
     jQuery(".layers .deleteButton").click(deleteDataset);
     jQuery(".layers .zoomAllButton").click(zoomAllDataset)
     jQuery(".layers .visibleButton").click(showHideDataset)
-    jQuery(".layers input[type=radio]").change(activeLayerChanged)
+    jQuery(".layers input[name=activedataset]").change(activeLayerChanged)
     jQuery("#affine-transform .section-heading").click(showHideAffineTransformation)
 });
 
@@ -693,16 +693,26 @@ function formToJSON() {
  * @param {object} paramVals 
  */
 function JSONToForm(paramVals) {
-    jQuery("#distribution").val(paramVals.distribution)
-    hideInputs();
+    if (!paramVals.affinematrix) {
+        // Reset the affine matrix
+        for (var i = 1; i <= 6; i++)
+            jQuery(`input[name=a${i}]`).val("");
+    }
     for (var key in paramVals) {
         if (key === "affinematrix") {
             var affineMatrix = paramVals[key];
-            for (var i = 1; i <= 6; i++) {
+            for (var i = 1; i <= 6; i++) 
                 jQuery(`input[name=a${i}]`).val(affineMatrix[i - 1]);
-            }
+        } else if (key === "maxsize") {
+            var maxsize = paramVals[key];
+            console.log("maxsize", maxsize)
+            for (var i = 0; i <= 1; i++)
+                jQuery(`input[name=maxsize${i}]`).val(maxsize[i]);
+        } else if (key === "geometry" || key == "distribution") {
+            jQuery(`select[name=${key}]`).val(paramVals[key])
         } else {
             jQuery(`input[name=${key}]`).val(paramVals[key])
         }
     }
+    hideInputs();
 }

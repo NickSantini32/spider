@@ -66,10 +66,9 @@
      </ul>
     </nav>
     <!-- List here the distribution parameters -->
-    <form id="data-form" method="GET" action="cgi/generator.py">
+    <form id="data-form" method="GET" action="/cgi/generator.py">
      <div id="generation-info" class="form-controls">
-      <h2 class="section-heading tooltip" title="Specify parameters for data generation">Distribution
-       of the selected dataset</h2>
+      <h2 class="section-heading tooltip" title="Specify parameters for data generation">Distribution parameters</h2>
       <!-- Distribution -->
       <label class="inputfield">
        <span class="tooltip" title="The distribution type of the data">Distribution</span>
@@ -83,7 +82,7 @@
        </select>
       </label>
       <!-- Cardinality -->
-      <label class="inputfield">
+      <label class="inputfield small">
        <span class="tooltip" title="The number of records to generate">Cardinality</span>
        <input type="number" value="100" name="cardinality" />
       </label>
@@ -126,14 +125,13 @@
         title="Parcel distribution: The dithering parameter that adds some random noise to the generated rectangles. d = 0 indicates no dithering and d = 1.0 indicates maximum dithering that can shrink rectangles down to a single point.">Dither</span>
        <input type="text" value="0.5" name="dither" />
       </label>
-      <!-- Seed value -->
+      <!-- Seed -->
       <label class="inputfield small">
-       <span class="tooltip" title="No input will randomize data, any other value reproduces the same data">Seed
-        value</span>
+       <span class="tooltip" title="No input will randomize data, any other value reproduces the same data">Seed</span>
        <input type="number" name="seed" />
       </label>
       <!-- Geometry type -->
-      <label class="inputfield">
+      <label class="inputfield small">
        <span class="tooltip" title="Type of geometry to generate">Geometry</span>
        <select id="geometry" name="geometry">
         <option value="point" id="geometry-point">Point</option>
@@ -142,16 +140,16 @@
       </label>
       <!-- Max width -->
       <label class="inputfield maxsize small">
-       <span class="tooltip" title="Maximum width of a box [0.0, 1.0]">Max Width</span>
+       <span class="tooltip" title="Maximum width of a box [0.0, 1.0]">Width</span>
        <input type="number" name="maxsize0" value="0.01"/>
       </label>
       <!-- Max height-->
       <label class="inputfield maxsize small">
-       <span class="tooltip" title="Maximum height of a box [0.0, 1.0]">Max Height</span>
+       <span class="tooltip" title="Maximum height of a box [0.0, 1.0]">Height</span>
        <input type="number" name="maxsize1" value="0.01"/>
       </label>
       <!-- Download format -->
-      <label class="inputfield">
+      <label class="inputfield small">
        <span class="tooltip" title="Output format of data">Format</span>
        <select id="format" name="format">
         <option value="csv">CSV</option>
@@ -203,7 +201,7 @@
    </section>
    <aside class="share">
     <h2 class="section-heading">
-     <span>More ways to access selected dataset</span>
+     <span>More ways to access this dataset</span>
     </h2>
     <div id="permalink">
      <span class="tooltip" title="A permanent link for the current dataset that you can bookmark or share">Permalink</span>

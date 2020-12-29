@@ -1,7 +1,7 @@
 // The path (relative to the current path) of the generator
-const generatorPath = "cgi/generator.py";
+var generatorPath;
 // A cyclic list of colors to use for all layers
-const colorNames = ["blue", "red", "green", "orange", "black", "purple", "gray", "brown"];
+var colorNames = ["blue", "red", "green", "orange", "black", "purple", "gray", "brown"];
 // A list of layers that are currently added by the user
 var dataLayers = [];
 // The map of OpenLayers that contains all the visualizations
@@ -33,6 +33,7 @@ const shortNames = {
 
 // Main function
 jQuery(function() {
+    generatorPath = jQuery("#data-form").attr("action")
     // Initialize the controls
     jQuery("#data-form").submit(formSubmit);
     // Add a new layer when the addLayerButton is clicked

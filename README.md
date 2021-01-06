@@ -10,7 +10,7 @@ Check our [YouTube video](https://youtu.be/h0xCG6Swdqw) on how to use SpiderWeb.
 ## Sample
 There are six kinds of supported distribution. Please feel free to contact us if you want to have other spatial distributions.
 
-![alt text](demo/sample.png)
+![Sample distributions](demo/sample.png)
 
 Here are some links to some sample data.
 
@@ -21,10 +21,11 @@ Here are some links to some sample data.
 ## Web demonstration
 Spider is deployed as a web application at [https://spider.cs.ucr.edu] where you can visualize and download the datasets.
 
-## Instructions to run locally
+<div id="cli">
+## Command line interface (CLI)
 Make sure that Python3 is installed. The following command runs the generator.
 ```shell
-python3 html/cgi/generator.py
+python3 html/cgi/generator.py <distribution> <cardinality> <dimensions> [geometry] [parameters]
 ```
 The parameters are generally specified as a set of `key=value` pairs. The possible keys and their usage is described below.
 
@@ -32,14 +33,14 @@ The parameters are generally specified as a set of `key=value` pairs. The possib
 - *cardinality*: Number of geometries to generate
 - *dimensions*: Number of dimensions in generated geometries
 - *geometry*: {point, box}. If geometry type is `box` and the distribution is NOT `parcel`, you have to specify the maxsize property
-maxsize: maximum size along each dimension (before transformation), e.g., 0.2,0.2 (no spaces)
-percentage: (for diagonal distribution) the percentage of records that are perfectly on the diagonal
-buffer: (for diagonal distribution) the buffer around the diagonal that additional points can be in
-srange: (for parcel distribution) the split range [0.0, 1.0]
-dither: (for parcel distribution) the amound of noise added to each record as a perctange of its initial size [0.0, 1.0]
-affinematrix: (optional) values of the affine matrix separated by comma. Number of expected values is d*(d+1) where d is the number of dimensions
-compress: (optional) { bz2 }
-format: output format { csv, wkt, geojson }
+- *maxsize*: maximum size along each dimension (before transformation), e.g., 0.2,0.2 (no spaces)
+- *percentage*: (for diagonal distribution) the percentage of records that are perfectly on the diagonal
+- *buffer*: (for diagonal distribution) the buffer around the diagonal that additional points can be in
+- *srange*: (for parcel distribution) the split range [0.0, 1.0]
+- *dither*: (for parcel distribution) the amound of noise added to each record as a perctange of its initial size [0.0, 1.0]
+- *affinematrix*: (optional) values of the affine matrix separated by comma. Number of expected values is d*(d+1) where d is the number of dimensions
+- *compress*: (optional) { bz2 }
+- *format*: output format { csv, wkt, geojson }
 [affine matrix] (Optional) Affine matrix parameters to apply to all generated geometries
 
 ## Instructions to install on Apache Tomcat as a web service
@@ -76,3 +77,4 @@ format: output format { csv, wkt, geojson }
 You can do that by running the following command at the source root `rsync -av html/ $CATALINA_HOME/webapps/ROOT/spider`
 5. Copy the `html/cgi/generator.py` file to `$CATALINA_HOME/webapps/ROOT/WEB-INF/cgi/generator.py`. You can do that by running the command `rsync -av html/cgi/ $CATALINA_HOME/webapps/ROOT/WEB-INF/cgi`
 6. Restart Tomcat server.
+7. Open your browser and navigate to [http://localhost:8080/spider/]

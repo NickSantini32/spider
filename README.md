@@ -21,8 +21,9 @@ Here are some links to some sample data.
 ## Web demonstration
 Spider is deployed as a web application at [https://spider.cs.ucr.edu] where you can visualize and download the datasets.
 
-## Command line interface (CLI)
 <div id="cli"></div>
+
+## Command line interface (CLI)
 Make sure that Python3 is installed. Download the [generator.py](html/cgi/generator.py) file and run it using the following command.
 ```shell
 python3 generator.py <distribution> <cardinality> <dimensions> [geometry] [parameters]

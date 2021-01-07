@@ -124,7 +124,7 @@ function createSparkCode(parameters) {
     code += SparkDistributionNames[parameters.distribution]
     code += ", "
     code += parameters.cardinality + ", \n"
-    code += "  Seq("
+    code += "  opts = Seq("
     const ParameterNames = {
         "dimensions": "SpatialGenerator.Dimensions",
         "seed": "SpatialGenerator.Seed",

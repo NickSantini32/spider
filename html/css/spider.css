@@ -287,3 +287,10 @@ footer { font-style: italic; }
 li.hidden {
     display: none;
 }
+
+a[target=_blank]:after {
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "\f35d";
+    margin-left: 5px;
+}

@@ -239,12 +239,16 @@ function populateFormFromURL() {
         var i = 0;
         var distributionShortName = params[i++];
         var distributionLongName;
+        var distributionFound = false;
         for (var name in shortNames) {
             if (shortNames[name] == distributionShortName) {
                 jQuery("#distribution").val(name);
                 distributionLongName = name;
+                distributionFound = true;
             }
         }
+        if (!distributionFound)
+            return;
         // Parse common parameters
         jQuery("input[name=cardinality]").val(params[i++])
         jQuery("input[name=dimensions]").val(params[i++])

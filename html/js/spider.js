@@ -140,10 +140,15 @@ function createSparkCode(parameters) {
     }
     for (key in parameters) {
         if (ParameterNames[key]) {
-          var value = parameters[key].toString();
+          var value = parameters[key];
           if (value) {
-              let numericRegex = /^[\d.-]+$/
-            if (numericRegex.exec(value))
+            if (key === "affinematrix") {
+              // Adjust the affine matrix to match the Scala implememntation
+              // Matrix transpose
+              value = [value[0], value[3], value[1], value[4], value[2], value[5]]
+            }
+            let numericRegex = /^[\d.-]+$/
+            if (numericRegex.exec(value.toString()))
               code += `${ParameterNames[key]} -> ${value}, `
             else
               code += `${ParameterNames[key]} -> "${value}", `
@@ -593,7 +598,6 @@ function zoomAllDataset(e) {
 function showHideDataset() {
     var selectedDatasetId = parseInt(jQuery(this).parents("li").find("input[type=radio]").val());
     var show = jQuery(this).parents("li").find("input[type=checkbox]").prop("checked")
-    console.log("show", show)
     show = !show
     jQuery(this).parents("li").find("input[type=checkbox]").prop("checked", show)
     getDatasetById(selectedDatasetId).mapLayer.setVisible(show);
@@ -709,7 +713,6 @@ function JSONToForm(paramVals) {
                 jQuery(`input[name=a${i}]`).val(affineMatrix[i - 1]);
         } else if (key === "maxsize") {
             var maxsize = paramVals[key];
-            console.log("maxsize", maxsize)
             for (var i = 0; i <= 1; i++)
                 jQuery(`input[name=maxsize${i}]`).val(maxsize[i]);
         } else if (key === "geometry" || key == "distribution") {

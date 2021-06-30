@@ -33,7 +33,10 @@ const shortNames = {
 
 // Main function
 jQuery(function() {
-    generatorPath = jQuery("#data-form").attr("action")
+
+    generatorPath = jQuery("#data-form").attr("action");
+
+
     // Initialize the controls
     jQuery("#data-form").submit(formSubmit);
     // Add a new layer when the addLayerButton is clicked
@@ -42,10 +45,10 @@ jQuery(function() {
     jQuery("#distribution").change(hideInputs);
     jQuery("#geometry").change(hideInputs);
     // Validate the form values
-    jQuery("#data-form input").change(validateForm)
-    jQuery("#data-form select").change(validateForm)
-    jQuery("#data-form input").change(saveLayerChanges)
-    jQuery("#data-form select").change(saveLayerChanges)
+    jQuery("#data-form input").change(validateForm);
+    jQuery("#data-form select").change(validateForm);
+    jQuery("#data-form input").change(saveLayerChanges);
+    jQuery("#data-form select").change(saveLayerChanges);
     // Create the map
     initializeMap();
     // If parameters are provided through permalink, use them to populate the on-screen form
@@ -57,10 +60,10 @@ jQuery(function() {
     hideInputs();
     // Events for datasets
     jQuery(".layers .deleteButton").click(deleteDataset);
-    jQuery(".layers .zoomAllButton").click(zoomAllDataset)
-    jQuery(".layers .visibleButton").click(showHideDataset)
-    jQuery(".layers input[name=activedataset]").change(activeLayerChanged)
-    jQuery("#affine-transform .section-heading").click(showHideAffineTransformation)
+    jQuery(".layers .zoomAllButton").click(zoomAllDataset);
+    jQuery(".layers .visibleButton").click(showHideDataset);
+    jQuery(".layers input[name=activedataset]").change(activeLayerChanged);
+    jQuery("#affine-transform .section-heading").click(showHideAffineTransformation);
 });
 
 function showHideAffineTransformation() {
@@ -91,22 +94,22 @@ function setLinksForLayer(layer) {
     // Update the permalink
     jQuery(".permalink").text(createPermalink(layer.parameters));
     jQuery(".spark-code").text(createSparkCode(layer.parameters));
-    jQuery(".python-code").text(createPythonCode(layer.parameters));    
+    // jQuery(".python-code").text(createPythonCode(layer.parameters));    
 }
 
-function createPythonCode(parameters) {
-    // Update the generation code
-    var code = "generator.py ";
-    for (key in parameters) {
-        var value = parameters[key];
-        if (value)
-            code += key+"="+value+" ";
-    }
-    if (parameters.affinematrix)
-        code += `affinematrix=${parameters.affinematrix.join(",")}`
-    code += " > "+parameters.distribution+"."+parameters.format;
-    return code;
-}
+// function createPythonCode(parameters) {
+//     // Update the generation code
+//     var code = "generator.py ";
+//     for (key in parameters) {
+//         var value = parameters[key];
+//         if (value)
+//             code += key+"="+value+" ";
+//     }
+//     if (parameters.affinematrix)
+//         code += `affinematrix=${parameters.affinematrix.join(",")}`
+//     code += " > "+parameters.distribution+"."+parameters.format;
+//     return code;
+// }
 
 function createSparkCode(parameters) {
     // Update the generation code
@@ -177,7 +180,7 @@ function activeLayerChanged() {
     // Update the permalink
     jQuery(".permalink").text(createPermalink(activeLayer.parameters));
     jQuery(".spark-code").text(createSparkCode(activeLayer.parameters));
-    jQuery(".python-code").text(createPythonCode(activeLayer.parameters));
+    // jQuery(".python-code").text(createPythonCode(activeLayer.parameters));
 }
 
 function highlightActiveLayer() {
@@ -382,39 +385,13 @@ function createMapLayer(layer) {
  * @param {Object} parameters the parameters to use for the visualization 
  */
 function refreshLayerVisualization(mapLayer, parameters) {
-    /** Create a point from a CSV line */
-    function parsePoint(line) {
-        var coordinates = line.split(",").map(function(c) {return parseFloat(c); })
-        return new ol.geom.Point(coordinates)
-    }
-    /**Create a box from a CSV line */
-    function parseBox(line) {
-        var coordinates = line.split(",").map(function(c) {return parseFloat(c); })
-        return new ol.geom.LineString([
-            [coordinates[0], coordinates[1]],
-            [coordinates[2], coordinates[1]],
-            [coordinates[2], coordinates[3]],
-            [coordinates[0], coordinates[3]],
-            [coordinates[0], coordinates[1]]
-        ]);
-    }
-    // Choose the correct parser based on the geometry type
-    var parseGeometry;
-    if (parameters.geometry === "point")
-        parseGeometry = parsePoint;
-    else
-        parseGeometry = parseBox;
-    // Get the data and use it to update the visualization
-    jQuery.get(getVisualizationURL(parameters), function(data) {
-        // Data is in CSV format
+    jQuery.get(getVisualizationURL(parameters), function() {
         var source = mapLayer.getSource();
         source.clear();
-        data.split("\n").forEach(function(line) {
-            if (line.length > 1) {
-                var feature = new ol.Feature({geometry: parseGeometry(line)})
-                source.addFeature(feature);
-            }
-        })
+
+        var generator = createGenerator(parameters);
+        generator.generate(source);
+
         // Add an MBR that represents the extents of the layer
         var coordinates = [
             [0.0, 0.0],
@@ -423,21 +400,23 @@ function refreshLayerVisualization(mapLayer, parameters) {
             [0.0, 1.0],
             [0.0, 0.0]
         ];
+
         var affineMatrix = parameters.affinematrix;
         if (affineMatrix) {
             coordinates = coordinates.map(function(coord) {
                 return affineTransform(coord, affineMatrix);
             });
         }
-        var boundary = new ol.geom.LineString(coordinates)
+
+        var boundary = new ol.geom.LineString(coordinates);
         source.addFeature(new ol.Feature({geometry: boundary}));
 
         // Update the zoom all button based on all datasets including the newly generated dataset
         updateMapExtents();
 
         if (firstDataset) {
-            map.getView().fit(zoomAllControl.extent)
-            firstDataset = false
+            map.getView().fit(zoomAllControl.extent);
+            firstDataset = false;
         }
     })
 }
@@ -722,4 +701,153 @@ function JSONToForm(paramVals) {
         }
     }
     hideInputs();
+}
+
+
+//ALL DATA GENERATING FUNCTIONS
+
+//Random Number Generators for all Distributions
+
+//Generate a random number in the range [min, max)
+function uniform(min, max){
+    return Math.random() * (max - min) + min;
+}
+
+// //Generate a random number from a Bernoulli distribution
+function bernoulli(p){
+    if (Math.random() < p) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
+}
+
+// //Generate a random number from a normal distribution with the given mean and standard deviation
+function normal(mu, sigma){
+    return mu + sigma * Math.sqrt(-2 * Math.log(Math.random())) * Math.sin(2 * Math.PI * Math.random());
+}
+
+// //Generate a random integer number in the range [1, n]
+function dice(n){
+    return Math.floor(Math.random() * n) + 1;
+}
+
+class Generator{
+    constructor(card, dim){
+        this.card = card;
+        this.dim = dim;
+    }
+
+    isValidPoint(point){
+        for (const x of point){
+            if (x < 0 || x > 1){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    generate(){} //abstract
+}
+
+class PointGenerator extends Generator{
+    constructor(card, dim){
+        super(card, dim);
+    }
+    
+    generatePoint(i, prevpoint){} //abstract
+
+    generate(source){
+        let i = 0;
+        var prevpoint = null;
+        var arr = [];
+        while (i < this.card){
+            var newpoint = this.generatePoint(i, prevpoint);
+            if (this.isValidPoint(newpoint)){
+
+                var feature = new ol.Feature({geometry: new ol.geom.Point(newpoint)});
+                source.addFeature(feature);
+
+                prevpoint = newpoint;
+                i += 1;
+            }
+        }
+    }
+}
+
+// Generate uniformly distributed points
+class UniformGenerator extends PointGenerator{
+    constructor(card, dim){
+        super(card, dim);
+    }
+
+    generatePoint(i, prev_point){
+        let arr = [];
+        for (let d = 0; d < this.dim; d++){
+            arr.push(Math.random());
+        }
+        return arr;
+    }
+}
+
+//Generate points from a diagonal distribution
+class DiagonalGenerator extends PointGenerator {
+    constructor(card, dim, percentage, buffer){
+        super(card, dim);
+        this.percentage = percentage;
+        this.buffer = buffer;
+    }
+
+    generatePoint(i, prev_point){
+        let arr = [];
+        if (bernoulli(this.percentage) == 1){
+            let r = Math.random();
+            for (let d = 0; d < this.dim; d++){
+                arr.push(r);
+            }
+            return arr;
+        }
+        else {
+            let c = Math.random();
+            let d = normal(0, this.buffer / 5);
+            for (let x = 0; x < this.dim; x++){
+                arr.push((c + (1 - 2 * (x % 2)) * d / Math.sqrt(2)));
+            }
+            return arr;
+        }
+    }
+}
+
+//Generate uniformly distributed points
+class GaussianGenerator extends PointGenerator{  
+    constructor(card, dim){
+        super(card, dim);
+    }
+
+    generatePoint(i, prev_point){
+        let arr = [];
+        for (let d = 0; d < this.dim; d++){
+            arr.push(normal(0.5, 0.1));
+        }
+        return arr;
+    }
+}
+
+
+//generator polymorphism used in refreshLayerVisualization
+function createGenerator(parameters) {
+    var generator = null;
+
+    if (parameters.distribution == "uniform"){
+        generator = new UniformGenerator(parameters.cardinality, parameters.dimensions);
+    }
+    else if (parameters.distribution == "diagonal"){
+        generator = new DiagonalGenerator(parameters.cardinality, parameters.dimensions, parameters.percentage, parameters.buffer);
+    }
+    else if (parameters.distribution == "gaussian"){
+        generator = new GaussianGenerator(parameters.cardinality, parameters.dimensions);
+    }
+
+    return generator;
 }

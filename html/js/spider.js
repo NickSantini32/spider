@@ -33,10 +33,7 @@ const shortNames = {
 
 // Main function
 jQuery(function() {
-
     generatorPath = jQuery("#data-form").attr("action");
-
-
     // Initialize the controls
     jQuery("#data-form").submit(formSubmit);
     // Add a new layer when the addLayerButton is clicked
@@ -94,22 +91,22 @@ function setLinksForLayer(layer) {
     // Update the permalink
     jQuery(".permalink").text(createPermalink(layer.parameters));
     jQuery(".spark-code").text(createSparkCode(layer.parameters));
-    // jQuery(".python-code").text(createPythonCode(layer.parameters));    
+    jQuery(".python-code").text(createPythonCode(layer.parameters));    
 }
 
-// function createPythonCode(parameters) {
-//     // Update the generation code
-//     var code = "generator.py ";
-//     for (key in parameters) {
-//         var value = parameters[key];
-//         if (value)
-//             code += key+"="+value+" ";
-//     }
-//     if (parameters.affinematrix)
-//         code += `affinematrix=${parameters.affinematrix.join(",")}`
-//     code += " > "+parameters.distribution+"."+parameters.format;
-//     return code;
-// }
+function createPythonCode(parameters) {
+    // Update the generation code
+    var code = "generator.py ";
+    for (key in parameters) {
+        var value = parameters[key];
+        if (value)
+            code += key+"="+value+" ";
+    }
+    if (parameters.affinematrix)
+        code += `affinematrix=${parameters.affinematrix.join(",")}`
+    code += " > "+parameters.distribution+"."+parameters.format;
+    return code;
+}
 
 function createSparkCode(parameters) {
     // Update the generation code
@@ -330,31 +327,31 @@ function chooseAvailableColor() {
     return colorUsage[0][0];
 }
 
-/**
- * Create a URL that generates data in a form that can be visualized using OpenLayers
- * @param {Object} parameters 
- */
-function getVisualizationURL(parameters) {
-    var visualizationURL = generatorPath+"?";
-    // Make a clone of the parameters to change it without changing the original
-    parameters = Object.assign({}, parameters);
-    // Override some parameters for visualization (Maximum 1000 records and two dimensions)
-    if (parameters.cardinality > 1000)
-        parameters.cardinality = 1000;
-    if (parameters.dimensions > 2)
-        parameters.dimensions = 2;
-    parameters.format = "csv";
-    if (parameters.affinematrix)
-        parameters.affinematrix = parameters.affinematrix.join(",")
-    if (parameters.maxsize)
-        parameters.maxsize = parameters.maxsize.join(",")
-    if (!parameters.seed)
-        parameters.seed = new Date().getTime()
-    Object.keys(parameters).forEach(function(key) {
-        visualizationURL += `${key}=${parameters[key]}&`
-    });
-    return visualizationURL;
-}
+// /**
+//  * Create a URL that generates data in a form that can be visualized using OpenLayers
+//  * @param {Object} parameters 
+//  */
+// function getVisualizationURL(parameters) {
+//     var visualizationURL = generatorPath+"?";
+//     // Make a clone of the parameters to change it without changing the original
+//     parameters = Object.assign({}, parameters);
+//     // Override some parameters for visualization (Maximum 1000 records and two dimensions)
+//     if (parameters.cardinality > 1000)
+//         parameters.cardinality = 1000;
+//     if (parameters.dimensions > 2)
+//         parameters.dimensions = 2;
+//     parameters.format = "csv";
+//     if (parameters.affinematrix)
+//         parameters.affinematrix = parameters.affinematrix.join(",")
+//     if (parameters.maxsize)
+//         parameters.maxsize = parameters.maxsize.join(",")
+//     if (!parameters.seed)
+//         parameters.seed = new Date().getTime()
+//     Object.keys(parameters).forEach(function(key) {
+//         visualizationURL += `${key}=${parameters[key]}&`
+//     });
+//     return visualizationURL;
+// }
 
 /**
  * Create a layer to add in the map for visualizing the given layer object
@@ -385,40 +382,58 @@ function createMapLayer(layer) {
  * @param {Object} parameters the parameters to use for the visualization 
  */
 function refreshLayerVisualization(mapLayer, parameters) {
-    jQuery.get(getVisualizationURL(parameters), function() {
-        var source = mapLayer.getSource();
-        source.clear();
+    // Make a clone of the parameters to change it without changing the original
+    parameters = Object.assign({}, parameters);
+    // Override some parameters for visualization (Maximum 1000 records and two dimensions)
+    parameters.format = "csv";
+    if (parameters.cardinality > 10000){
+        parameters.cardinality = 10000;
+    }
+    if (parameters.dimensions > 2){
+        parameters.dimensions = 2;
+    }
+    if (parameters.affinematrix){
+        parameters.affinematrix = parameters.affinematrix.join(",");
+    }
+    if (parameters.maxsize){
+        parameters.maxsize = parameters.maxsize.join(",");
+    }
+    if (!parameters.seed){
+        parameters.seed = new Date().getTime();
+    }
 
-        var generator = createGenerator(parameters);
-        generator.generate(source);
+    var source = mapLayer.getSource();
+    source.clear();
 
-        // Add an MBR that represents the extents of the layer
-        var coordinates = [
-            [0.0, 0.0],
-            [1.0, 0.0],
-            [1.0, 1.0],
-            [0.0, 1.0],
-            [0.0, 0.0]
-        ];
+    var generator = createGenerator(parameters);
+    generator.generate(source, parameters);
 
-        var affineMatrix = parameters.affinematrix;
-        if (affineMatrix) {
-            coordinates = coordinates.map(function(coord) {
-                return affineTransform(coord, affineMatrix);
-            });
-        }
+    // Add an MBR that represents the extents of the layer
+    var coordinates = [
+        [0.0, 0.0],
+        [1.0, 0.0],
+        [1.0, 1.0],
+        [0.0, 1.0],
+        [0.0, 0.0]
+    ];
 
-        var boundary = new ol.geom.LineString(coordinates);
-        source.addFeature(new ol.Feature({geometry: boundary}));
+    var affineMatrix = parameters.affinematrix;
+    if (affineMatrix) {
+        coordinates = coordinates.map(function(coord) {
+            return affineTransform(coord, affineMatrix);
+        });
+    }
 
-        // Update the zoom all button based on all datasets including the newly generated dataset
-        updateMapExtents();
+    var boundary = new ol.geom.LineString(coordinates);
+    source.addFeature(new ol.Feature({geometry: boundary}));
 
-        if (firstDataset) {
-            map.getView().fit(zoomAllControl.extent);
-            firstDataset = false;
-        }
-    })
+    // Update the zoom all button based on all datasets including the newly generated dataset
+    updateMapExtents();
+
+    if (firstDataset) {
+        map.getView().fit(zoomAllControl.extent);
+        firstDataset = false;
+    }
 }
 
 /**
@@ -623,22 +638,22 @@ function validateForm() {
 function hideInputs() {
     var selectedDistribution = jQuery("#distribution").val();
     for (inputName in fEnableObj) {
-        var inputField = jQuery(`input[name='${inputName}']`)
+        var inputField = jQuery(`input[name='${inputName}']`);
         if (fEnableObj[inputName] === selectedDistribution)
-            inputField.parent("label").removeClass("hidden")
+            inputField.parent("label").removeClass("hidden");
         else
-            inputField.parent("label").addClass("hidden")
+            inputField.parent("label").addClass("hidden");
     }
     if (selectedDistribution === "parcel") {
-        jQuery("#geometry-box").prop("checked", true)
-        jQuery("select#geometry").attr("disabled", true)
-        jQuery(".inputfield.maxsize").addClass("hidden")
+        jQuery("#geometry-box").prop("checked", true);
+        jQuery("select#geometry").attr("disabled", true);
+        jQuery(".inputfield.maxsize").addClass("hidden");
     } else {
         jQuery("select#geometry").attr("disabled", false)
         if (jQuery("#geometry").val() == "box") {
-            jQuery(".inputfield.maxsize").removeClass("hidden")
+            jQuery(".inputfield.maxsize").removeClass("hidden");
         } else {
-            jQuery(".inputfield.maxsize").addClass("hidden")
+            jQuery(".inputfield.maxsize").addClass("hidden");
         }
     }
 }
@@ -748,7 +763,30 @@ class Generator{
         return true;
     }
 
-    generate(){} //abstract
+    //abstract
+    generate(source, parameters){
+        throw "Using abstract function";
+    }
+
+    pointToBox(minCoordinates, maxCoordinates){
+        
+        var coordinates = [];
+        for (let i = 0; i < minCoordinates.length; i++){
+            coordinates.push(minCoordinates[i]);
+        }
+        for (let i = 0; i < maxCoordinates.length; i++){
+            coordinates.push(maxCoordinates[i]);
+        }
+        var feature = new ol.Feature({geometry: new ol.geom.LineString([
+                [coordinates[0], coordinates[1]],
+                [coordinates[2], coordinates[1]],
+                [coordinates[2], coordinates[3]],
+                [coordinates[0], coordinates[3]],
+                [coordinates[0], coordinates[1]]
+            ])
+        });
+        return feature;
+    }
 }
 
 class PointGenerator extends Generator{
@@ -756,19 +794,33 @@ class PointGenerator extends Generator{
         super(card, dim);
     }
     
-    generatePoint(i, prevpoint){} //abstract
+    //abstract
+    generatePoint(i, prevpoint){
+        throw "Using abstract function";
+    }
 
-    generate(source){
+    generate(source, parameters){
         let i = 0;
         var prevpoint = null;
-        var arr = [];
         while (i < this.card){
             var newpoint = this.generatePoint(i, prevpoint);
             if (this.isValidPoint(newpoint)){
-
-                var feature = new ol.Feature({geometry: new ol.geom.Point(newpoint)});
+                var feature;
+                if (parameters.geometry == "point"){
+                    feature = new ol.Feature({geometry: new ol.geom.Point(newpoint)});
+                }
+                else if (parameters.geometry == "box"){
+                    var minCoordinates = [];
+                    var maxCoordinates = [];
+                    for (let d = 0; d < newpoint.length; d++){
+                        var maxsize = parameters.maxsize.split(",").map(function(c) {return parseFloat(c)});
+                        let size = uniform(0, maxsize[d]);
+                        minCoordinates.push(newpoint[d] - size);
+                        maxCoordinates.push(newpoint[d] + size);
+                    }
+                    feature = this.pointToBox(minCoordinates, maxCoordinates);
+                }
                 source.addFeature(feature);
-
                 prevpoint = newpoint;
                 i += 1;
             }
@@ -834,6 +886,69 @@ class GaussianGenerator extends PointGenerator{
     }
 }
 
+class SierpinskiGenerator extends PointGenerator {
+    constructor(card, dim){
+        super(card, dim);
+    }
+
+    generatePoint(i, prev_point){
+        if (i == 0){
+            return [0.0, 0.0];
+        }
+        else if (i == 1){
+            return [1.0, 0.0];
+        }
+        else if (i == 2){
+            return [0.5, Math.sqrt(3) / 2];
+        }
+        else {
+            let d = dice(5);
+            if (d == 1 || d == 2){
+                return this.getMiddlePoint(prev_point, [0.0, 0.0]);
+            }
+            else if (d == 3 || d == 4){
+                return this.getMiddlePoint(prev_point, [1.0, 0.0]);
+            }
+            else {
+                return this.getMiddlePoint(prev_point, [0.5, Math.sqrt(3) / 2]);
+            }
+        }
+    }
+
+    getMiddlePoint(point1, point2){
+        let arr = [];
+        for (let i = 0; i < point1.length; i++){
+            arr.push((point1[i] + point2[i]) / 2);
+        }
+        return arr;
+    }
+}
+
+class BitGenerator extends PointGenerator {
+    constructor(card, dim, prob, digits){
+        super(card, dim);
+        this.prob = prob;
+        this.digits = digits;
+    }
+
+    generatePoint(i, prev_point){
+        let arr = [];
+        for (let d = 0; d < this.dim; d++){
+            arr.push(this.bit());
+        }
+        return arr;
+    }
+
+    bit(){
+        var num = 0.0;
+        for (let i = 1; i < this.digits + 1; i++){
+            let c = bernoulli(this.prob);
+            num = num + c / (Math.pow(2, i));
+        }
+        return num;
+    }
+}
+
 
 //generator polymorphism used in refreshLayerVisualization
 function createGenerator(parameters) {
@@ -847,6 +962,15 @@ function createGenerator(parameters) {
     }
     else if (parameters.distribution == "gaussian"){
         generator = new GaussianGenerator(parameters.cardinality, parameters.dimensions);
+    }
+    else if (parameters.distribution == "sierpinski"){
+        generator = new SierpinskiGenerator(parameters.cardinality, parameters.dimensions);
+    }
+    else if (parameters.distribution == "bit"){
+        generator = new BitGenerator(parameters.cardinality, parameters.dimensions, parameters.probability, parameters.digits);
+    }
+    else if (parameters.distribution == "parcel"){
+        generator = new ParcelGenerator(parameters.cardinality, parameters.dimensions, parameters.srange, parameters.dither);
     }
 
     return generator;

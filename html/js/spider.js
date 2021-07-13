@@ -769,7 +769,6 @@ class Generator{
     }
 
     pointToBox(minCoordinates, maxCoordinates){
-        
         var coordinates = [];
         for (let i = 0; i < minCoordinates.length; i++){
             coordinates.push(minCoordinates[i]);
@@ -949,6 +948,101 @@ class BitGenerator extends PointGenerator {
     }
 }
 
+class BoxWithDepth {
+    constructor(depth, x, y, width, height){
+        this.depth = depth; //int
+        this.x = x; //float
+        this.y = y; //float
+        this.w = width; //float
+        this.h = height; //float
+    }
+}
+
+// A two-dimensional box with depth field. Used with the parcel generator
+class ParcelGenerator extends Generator{
+    constructor(card, dim, split_range, dither){
+        super(card, dim);
+        this.split_range = split_range;
+        this.dither = dither;
+    }
+
+    generate(source, parameters){
+        // Using dataclass to create BoxWithDepth, which stores depth of each box in the tree
+        // Depth is used to determine at which level to stop splitting and start printing    
+        let box = new BoxWithDepth(0, 0.0, 0.0, 1.0, 1.0);
+        var boxes = [];
+        boxes.push(box);
+
+        var max_height = Math.ceil(Math.log2(this.card));
+
+        // We will print some boxes at last level and the remaining at the second to last level 
+        // Number of boxes to split on the second to last level
+        var numToSplit = this.card - Math.pow(2, Math.max(max_height - 1, 0));
+        var numSplit = 0;
+        var boxes_generated = 0;
+
+        while (boxes_generated < this.card){
+
+            var b = boxes.pop();
+
+            if (b.depth >= (max_height - 1)){
+                if (numSplit < numToSplit){ //Split at second to last level and print the new boxes
+                    let splitBoxes = this.split(b);
+                    numSplit += 1;
+                    this.ditherAndPrint(splitBoxes[0], source, parameters);
+                    this.ditherAndPrint(splitBoxes[1], source, parameters);
+                    boxes_generated += 2;
+                }
+                else { //Print remaining boxes from the second to last level 
+                    this.ditherAndPrint(b, source);
+                    boxes_generated += 1;
+                }
+            }
+            else {
+                let splitBoxes = this.split(b);
+                boxes.push(splitBoxes[0]);
+                boxes.push(splitBoxes[1]);
+            }
+        }
+    }
+
+    split(b){
+        if (b.w > b.h){
+            // Split vertically if width is bigger than height
+            // Tried numpy random number generator, found to be twice as slow as the Python default generator
+            let split_size = b.w * uniform(this.split_range, 1 - this.split_range);
+            var b1 = new BoxWithDepth(b.depth + 1, b.x, b.y, split_size, b.h);
+            var b2 = new BoxWithDepth(b.depth + 1, b.x + split_size, b.y, b.w - split_size, b.h);
+        }
+        else {
+            // Split horizontally if width is less than height
+            let split_size = b.h * uniform(this.split_range, 1 - this.split_range);
+            var b1 = new BoxWithDepth(b.depth + 1, b.x, b.y, b.w, split_size);
+            var b2 = new BoxWithDepth(b.depth + 1, b.x, b.y + split_size, b.w, b.h - split_size);
+        }
+
+        let splitBoxes = [];
+        splitBoxes.push(b1);
+        splitBoxes.push(b2);
+        return splitBoxes;
+    }
+
+    ditherAndPrint(b, source, parameters){
+        let ditherX = b.w * uniform(0.0, this.dither);
+        b.x += ditherX / 2;
+        b.w -= ditherX / 2;
+        let ditherY = b.h * uniform(0.0, this.dither);
+        b.y += ditherY / 2;
+        b.h -= ditherY / 2;
+
+        var feature = this.pointToBox([b.x, b.y], [b.x + b.w, b.y + b.h]);
+        source.addFeature(feature);
+    }
+
+    generatePoint(i, prev_point){
+        throw "Cannot generate points with the ParcelGenerator";
+    }
+}
 
 //generator polymorphism used in refreshLayerVisualization
 function createGenerator(parameters) {

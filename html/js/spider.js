@@ -419,6 +419,7 @@ function refreshLayerVisualization(mapLayer, parameters) {
 
     var affineMatrix = parameters.affinematrix;
     if (affineMatrix) {
+        affineMatrix = parameters.affinematrix.split(",").map(function(c) {return parseFloat(c)});
         coordinates = coordinates.map(function(coord) {
             return affineTransform(coord, affineMatrix);
         });
@@ -754,6 +755,13 @@ class Generator{
         this.dim = dim;
     }
 
+    setAffineMatrix(parameters){
+        this.affineMatrix = parameters.affinematrix;
+        if (this.affineMatrix){
+            this.affineMatrix = parameters.affinematrix.split(",").map(function(c) {return parseFloat(c)});
+        }
+    }
+
     isValidPoint(point){
         for (const x of point){
             if (x < 0 || x > 1){
@@ -768,7 +776,7 @@ class Generator{
         throw "Using abstract function";
     }
 
-    pointToBox(minCoordinates, maxCoordinates){
+    pointToBox(minCoordinates, maxCoordinates){    
         var coordinates = [];
         for (let i = 0; i < minCoordinates.length; i++){
             coordinates.push(minCoordinates[i]);
@@ -801,9 +809,16 @@ class PointGenerator extends Generator{
     generate(source, parameters){
         let i = 0;
         var prevpoint = null;
+        this.setAffineMatrix(parameters);
+
         while (i < this.card){
             var newpoint = this.generatePoint(i, prevpoint);
             if (this.isValidPoint(newpoint)){
+
+                if (this.affineMatrix){
+                    newpoint = affineTransform(newpoint, this.affineMatrix);
+                }
+
                 var feature;
                 if (parameters.geometry == "point"){
                     feature = new ol.Feature({geometry: new ol.geom.Point(newpoint)});
@@ -837,6 +852,7 @@ class UniformGenerator extends PointGenerator{
         let arr = [];
         for (let d = 0; d < this.dim; d++){
             arr.push(Math.random());
+            // arr.push(rng.double());
         }
         return arr;
     }
@@ -994,7 +1010,7 @@ class ParcelGenerator extends Generator{
                     boxes_generated += 2;
                 }
                 else { //Print remaining boxes from the second to last level 
-                    this.ditherAndPrint(b, source);
+                    this.ditherAndPrint(b, source, parameters);
                     boxes_generated += 1;
                 }
             }
@@ -1035,7 +1051,16 @@ class ParcelGenerator extends Generator{
         b.y += ditherY / 2;
         b.h -= ditherY / 2;
 
-        var feature = this.pointToBox([b.x, b.y], [b.x + b.w, b.y + b.h]);
+        var minCoordinates = [b.x, b.y];
+        var maxCoordinates = [b.x + b.w, b.y + b.h]
+
+        this.setAffineMatrix(parameters);
+        if (this.affineMatrix){
+            minCoordinates = affineTransform(minCoordinates, this.affineMatrix);
+            maxCoordinates = affineTransform(maxCoordinates, this.affineMatrix);
+        }
+
+        var feature = this.pointToBox(minCoordinates, maxCoordinates);
         source.addFeature(feature);
     }
 

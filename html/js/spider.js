@@ -1,3 +1,5 @@
+//seeded random generator
+var rng;
 // The path (relative to the current path) of the generator
 var generatorPath;
 // A cyclic list of colors to use for all layers
@@ -199,6 +201,7 @@ function createDownloadLink(parameters) {
         parameters.maxsize = parameters.maxsize.join(",")
     if (!parameters.seed)
         parameters.seed = new Date().getTime()
+    rng = new Math.seedrandom(parameters.seed);
     var downloadURL = generatorPath+"?";
     Object.keys(parameters).forEach(function(key) {
         downloadURL += `${key}=${parameters[key]}&`
@@ -327,32 +330,6 @@ function chooseAvailableColor() {
     return colorUsage[0][0];
 }
 
-// /**
-//  * Create a URL that generates data in a form that can be visualized using OpenLayers
-//  * @param {Object} parameters 
-//  */
-// function getVisualizationURL(parameters) {
-//     var visualizationURL = generatorPath+"?";
-//     // Make a clone of the parameters to change it without changing the original
-//     parameters = Object.assign({}, parameters);
-//     // Override some parameters for visualization (Maximum 1000 records and two dimensions)
-//     if (parameters.cardinality > 1000)
-//         parameters.cardinality = 1000;
-//     if (parameters.dimensions > 2)
-//         parameters.dimensions = 2;
-//     parameters.format = "csv";
-//     if (parameters.affinematrix)
-//         parameters.affinematrix = parameters.affinematrix.join(",")
-//     if (parameters.maxsize)
-//         parameters.maxsize = parameters.maxsize.join(",")
-//     if (!parameters.seed)
-//         parameters.seed = new Date().getTime()
-//     Object.keys(parameters).forEach(function(key) {
-//         visualizationURL += `${key}=${parameters[key]}&`
-//     });
-//     return visualizationURL;
-// }
-
 /**
  * Create a layer to add in the map for visualizing the given layer object
  * @param {layer} layer 
@@ -401,6 +378,8 @@ function refreshLayerVisualization(mapLayer, parameters) {
     if (!parameters.seed){
         parameters.seed = new Date().getTime();
     }
+
+    rng = new Math.seedrandom(parameters.seed);
 
     var source = mapLayer.getSource();
     source.clear();
@@ -725,13 +704,13 @@ function JSONToForm(paramVals) {
 //Random Number Generators for all Distributions
 
 //Generate a random number in the range [min, max)
-function uniform(min, max){
-    return Math.random() * (max - min) + min;
+function uniform(num1, num2){
+    return rng.quick() * Math.abs(num1 - num2) + Math.min(num1, num2);
 }
 
 // //Generate a random number from a Bernoulli distribution
 function bernoulli(p){
-    if (Math.random() < p) {
+    if (rng.quick() < p) {
         return 1;
     }
     else {
@@ -741,12 +720,12 @@ function bernoulli(p){
 
 // //Generate a random number from a normal distribution with the given mean and standard deviation
 function normal(mu, sigma){
-    return mu + sigma * Math.sqrt(-2 * Math.log(Math.random())) * Math.sin(2 * Math.PI * Math.random());
+    return mu + sigma * Math.sqrt(-2 * Math.log(rng.quick())) * Math.sin(2 * Math.PI * rng.quick());
 }
 
 // //Generate a random integer number in the range [1, n]
 function dice(n){
-    return Math.floor(Math.random() * n) + 1;
+    return Math.floor(rng.quick() * n) + 1;
 }
 
 class Generator{
@@ -776,7 +755,8 @@ class Generator{
         throw "Using abstract function";
     }
 
-    pointToBox(minCoordinates, maxCoordinates){    
+    pointToBox(minCoordinates, maxCoordinates){
+        
         var coordinates = [];
         for (let i = 0; i < minCoordinates.length; i++){
             coordinates.push(minCoordinates[i]);
@@ -851,7 +831,7 @@ class UniformGenerator extends PointGenerator{
     generatePoint(i, prev_point){
         let arr = [];
         for (let d = 0; d < this.dim; d++){
-            arr.push(Math.random());
+            arr.push(rng.quick());
             // arr.push(rng.double());
         }
         return arr;
@@ -869,14 +849,14 @@ class DiagonalGenerator extends PointGenerator {
     generatePoint(i, prev_point){
         let arr = [];
         if (bernoulli(this.percentage) == 1){
-            let r = Math.random();
+            let r = rng.quick();
             for (let d = 0; d < this.dim; d++){
                 arr.push(r);
             }
             return arr;
         }
         else {
-            let c = Math.random();
+            let c = rng.quick();
             let d = normal(0, this.buffer / 5);
             for (let x = 0; x < this.dim; x++){
                 arr.push((c + (1 - 2 * (x % 2)) * d / Math.sqrt(2)));
@@ -1025,7 +1005,6 @@ class ParcelGenerator extends Generator{
     split(b){
         if (b.w > b.h){
             // Split vertically if width is bigger than height
-            // Tried numpy random number generator, found to be twice as slow as the Python default generator
             let split_size = b.w * uniform(this.split_range, 1 - this.split_range);
             var b1 = new BoxWithDepth(b.depth + 1, b.x, b.y, split_size, b.h);
             var b2 = new BoxWithDepth(b.depth + 1, b.x + split_size, b.y, b.w - split_size, b.h);
@@ -1036,7 +1015,6 @@ class ParcelGenerator extends Generator{
             var b1 = new BoxWithDepth(b.depth + 1, b.x, b.y, b.w, split_size);
             var b2 = new BoxWithDepth(b.depth + 1, b.x, b.y + split_size, b.w, b.h - split_size);
         }
-
         let splitBoxes = [];
         splitBoxes.push(b1);
         splitBoxes.push(b2);
@@ -1052,7 +1030,7 @@ class ParcelGenerator extends Generator{
         b.h -= ditherY / 2;
 
         var minCoordinates = [b.x, b.y];
-        var maxCoordinates = [b.x + b.w, b.y + b.h]
+        var maxCoordinates = [b.x + b.w, b.y + b.h];
 
         this.setAffineMatrix(parameters);
         if (this.affineMatrix){

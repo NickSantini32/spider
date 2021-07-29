@@ -365,7 +365,7 @@ function createMapLayer(layer) {
     var windowHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
     
     var cardLimit = 10000; //cardinality limit defaults to 10,000
-    if (windowHeight < 750 || windowWidth < 500){
+    if (windowHeight < 1000 || windowWidth < 1000){
         cardLimit = 1000;
     }
 
@@ -1078,10 +1078,10 @@ class ParcelGenerator extends Generator{
     ditherAndPrint(b, source, parameters){
         let ditherX = b.w * uniform(0.0, this.dither);
         b.x += ditherX / 2;
-        b.w -= ditherX / 2;
+        b.w -= ditherX;
         let ditherY = b.h * uniform(0.0, this.dither);
         b.y += ditherY / 2;
-        b.h -= ditherY / 2;
+        b.h -= ditherY;
 
         var minCoordinates = [b.x, b.y];
         var maxCoordinates = [b.x + b.w, b.y + b.h];

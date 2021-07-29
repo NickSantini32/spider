@@ -179,7 +179,7 @@ function activeLayerChanged() {
     // Update the permalink
     jQuery(".permalink").text(createPermalink(activeLayer.parameters));
     jQuery(".spark-code").text(createSparkCode(activeLayer.parameters));
-    // jQuery(".python-code").text(createPythonCode(activeLayer.parameters));
+    jQuery(".python-code").text(createPythonCode(activeLayer.parameters));
 }
 
 function highlightActiveLayer() {
@@ -358,13 +358,23 @@ function createMapLayer(layer) {
  * @param {MapLayer} mapLayer the layer on the map
  * @param {Object} parameters the parameters to use for the visualization 
  */
-function refreshLayerVisualization(mapLayer, parameters) {
+ function refreshLayerVisualization(mapLayer, parameters) {
+
+    //Window dimensions for customized cardinality upper limits
+    var windowWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+    var windowHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+    
+    var cardLimit = 10000; //cardinality limit defaults to 10,000
+    if (windowHeight < 750 || windowWidth < 500){
+        cardLimit = 1000;
+    }
+
     // Make a clone of the parameters to change it without changing the original
     parameters = Object.assign({}, parameters);
     // Override some parameters for visualization (Maximum 1000 records and two dimensions)
     parameters.format = "csv";
-    if (parameters.cardinality > 10000){
-        parameters.cardinality = 10000;
+    if (parameters.cardinality > cardLimit){
+        parameters.cardinality = cardLimit;
     }
     if (parameters.dimensions > 2){
         parameters.dimensions = 2;
@@ -417,7 +427,6 @@ function refreshLayerVisualization(mapLayer, parameters) {
 }
 
 /**
- * 
  * @param {float[2]} point 
  * @param {float[6]} matrix 
  */
@@ -569,7 +578,7 @@ function zoomAllDataset(e) {
     e.preventDefault();
 }
 
-function showHideDataset() {
+function showHideDataset(e) {
     var selectedDatasetId = parseInt(jQuery(this).parents("li").find("input[type=radio]").val());
     var show = jQuery(this).parents("li").find("input[type=checkbox]").prop("checked")
     show = !show
@@ -698,17 +707,19 @@ function JSONToForm(paramVals) {
     hideInputs();
 }
 
-
-//ALL DATA GENERATING FUNCTIONS
-
-//Random Number Generators for all Distributions
-
-//Generate a random number in the range [min, max)
+/**
+ * Generate a random number in the range [min, max)
+ * @param {float} num1
+ * @param {float} num2
+ */
 function uniform(num1, num2){
     return rng.quick() * Math.abs(num1 - num2) + Math.min(num1, num2);
 }
 
-// //Generate a random number from a Bernoulli distribution
+/**
+ * Generate a random number from a Bernoulli distribution
+ * @param {float} p
+ */
 function bernoulli(p){
     if (rng.quick() < p) {
         return 1;
@@ -718,16 +729,27 @@ function bernoulli(p){
     }
 }
 
-// //Generate a random number from a normal distribution with the given mean and standard deviation
+/**
+ * Generate a random number from a normal distribution with the given mean and standard deviation
+ * @param {float} mu
+ * @param {float} sigma
+ */
 function normal(mu, sigma){
     return mu + sigma * Math.sqrt(-2 * Math.log(rng.quick())) * Math.sin(2 * Math.PI * rng.quick());
 }
 
-// //Generate a random integer number in the range [1, n]
+/**
+ * Generate a random integer number in the range [1, n]
+ * @param {float} n
+ */
 function dice(n){
     return Math.floor(rng.quick() * n) + 1;
 }
 
+/**
+ * Base class for all data generators.
+ * @constructor
+ */
 class Generator{
     constructor(card, dim){
         this.card = card;
@@ -755,8 +777,8 @@ class Generator{
         throw "Using abstract function";
     }
 
-    pointToBox(minCoordinates, maxCoordinates){
-        
+    //creates box given min and max coordinates from point
+    pointToBox(minCoordinates, maxCoordinates){ 
         var coordinates = [];
         for (let i = 0; i < minCoordinates.length; i++){
             coordinates.push(minCoordinates[i]);
@@ -776,7 +798,12 @@ class Generator{
     }
 }
 
-class PointGenerator extends Generator{
+/**
+ * Base class for all uniform, diagonal, guassian, sierpinski, and bit generators. 
+ * Inherits from Generator Base class.
+ * @constructor
+ */
+class DataGenerator extends Generator{
     constructor(card, dim){
         super(card, dim);
     }
@@ -814,7 +841,8 @@ class PointGenerator extends Generator{
                     }
                     feature = this.pointToBox(minCoordinates, maxCoordinates);
                 }
-                source.addFeature(feature);
+
+                source.addFeature(feature); //write feature to the screen
                 prevpoint = newpoint;
                 i += 1;
             }
@@ -822,8 +850,12 @@ class PointGenerator extends Generator{
     }
 }
 
-// Generate uniformly distributed points
-class UniformGenerator extends PointGenerator{
+/**
+ * Generates uniformly distributed points
+ * Inherits from DataGenerator Base class.
+ * @constructor
+ */
+class UniformGenerator extends DataGenerator{
     constructor(card, dim){
         super(card, dim);
     }
@@ -832,14 +864,17 @@ class UniformGenerator extends PointGenerator{
         let arr = [];
         for (let d = 0; d < this.dim; d++){
             arr.push(rng.quick());
-            // arr.push(rng.double());
         }
         return arr;
     }
 }
 
-//Generate points from a diagonal distribution
-class DiagonalGenerator extends PointGenerator {
+/**
+ * Generates points from a diagonal distribution
+ * Inherits from DataGenerator Base class.
+ * @constructor
+ */
+class DiagonalGenerator extends DataGenerator {
     constructor(card, dim, percentage, buffer){
         super(card, dim);
         this.percentage = percentage;
@@ -866,8 +901,12 @@ class DiagonalGenerator extends PointGenerator {
     }
 }
 
-//Generate uniformly distributed points
-class GaussianGenerator extends PointGenerator{  
+/**
+ * Generates Gaussian distributed points
+ * Inherits from DataGenerator Base class.
+ * @constructor
+ */
+class GaussianGenerator extends DataGenerator{  
     constructor(card, dim){
         super(card, dim);
     }
@@ -881,7 +920,12 @@ class GaussianGenerator extends PointGenerator{
     }
 }
 
-class SierpinskiGenerator extends PointGenerator {
+/**
+ * Generates Sierpinski distributed points
+ * Inherits from DataGenerator Base class.
+ * @constructor
+ */
+class SierpinskiGenerator extends DataGenerator {
     constructor(card, dim){
         super(card, dim);
     }
@@ -919,7 +963,12 @@ class SierpinskiGenerator extends PointGenerator {
     }
 }
 
-class BitGenerator extends PointGenerator {
+/**
+ * Generates points from a bit distribution
+ * Inherits from DataGenerator Base class.
+ * @constructor
+ */
+ class BitGenerator extends DataGenerator {
     constructor(card, dim, prob, digits){
         super(card, dim);
         this.prob = prob;
@@ -936,14 +985,15 @@ class BitGenerator extends PointGenerator {
 
     bit(){
         var num = 0.0;
-        for (let i = 1; i < this.digits + 1; i++){
-            let c = bernoulli(this.prob);
-            num = num + c / (Math.pow(2, i));
+        for (let i = 0; i < this.digits; i++){
+            var c = bernoulli(this.prob);
+            num = num + c / Math.pow(2, i + 1);
         }
         return num;
     }
 }
 
+// A two-dimensional box with depth field. Used with the parcel generator
 class BoxWithDepth {
     constructor(depth, x, y, width, height){
         this.depth = depth; //int
@@ -954,7 +1004,11 @@ class BoxWithDepth {
     }
 }
 
-// A two-dimensional box with depth field. Used with the parcel generator
+/**
+ * Generates points from a parcel distribution. Only supports boxes.
+ * Inherits from Generator Base class.
+ * @constructor
+ */
 class ParcelGenerator extends Generator{
     constructor(card, dim, split_range, dither){
         super(card, dim);
@@ -1047,8 +1101,11 @@ class ParcelGenerator extends Generator{
     }
 }
 
-//generator polymorphism used in refreshLayerVisualization
-function createGenerator(parameters) {
+/**
+ * Selects a generator to use based on parameters
+ * @param {object} parameters 
+ */
+ function createGenerator(parameters) {
     var generator = null;
 
     if (parameters.distribution == "uniform"){

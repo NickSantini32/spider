@@ -170,7 +170,7 @@ function getDatasetById(datasetId) {
 }
 
 /**
- * Populate the form from the currently selected dataset
+ * Populate the form from the currently selected dataset.
  */
 function activeLayerChanged() {
     var activeLayer = getDatasetById(getActiveDatasetId());
@@ -189,7 +189,7 @@ function highlightActiveLayer() {
 }
 
 /**
- * Form a download URL for the data in the form
+ * Form a download URL for the data in the form.
  */
 function createDownloadLink(parameters) {
     // Make a clone to change the parameters
@@ -210,7 +210,7 @@ function createDownloadLink(parameters) {
 }
 
 /**
- * Create a permalink based on the data of the current form
+ * Create a permalink based on the data of the current form.
  */
 function createPermalink(parameters) {
     var permalink = window.location.origin + window.location.pathname + "?";
@@ -235,7 +235,7 @@ function createPermalink(parameters) {
 }
 
 /**
- * Use the URL parameters to populate the form at page load
+ * Use the URL parameters to populate the form at page load.
  */
 function populateFormFromURL() {
     var url = window.location.href;
@@ -311,7 +311,7 @@ function initializeMap() {
 }
 
 /**
- * Goes through the list of colors and choose one that is least used
+ * Goes through the list of colors and choose one that is least used.
  */
 function chooseAvailableColor() {
     // Count how many times each color is used
@@ -331,7 +331,7 @@ function chooseAvailableColor() {
 }
 
 /**
- * Create a layer to add in the map for visualizing the given layer object
+ * Create a layer to add in the map for visualizing the given layer object.
  * @param {layer} layer 
  */
 function createMapLayer(layer) {
@@ -354,7 +354,7 @@ function createMapLayer(layer) {
 }
 
 /**
- * Update the visualization on the screen to match the given parameters
+ * Update the visualization on the screen to match the given parameters.
  * @param {MapLayer} mapLayer the layer on the map
  * @param {Object} parameters the parameters to use for the visualization 
  */
@@ -364,17 +364,17 @@ function createMapLayer(layer) {
     var windowWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
     var windowHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
     
-    var cardLimit = 10000; //cardinality limit defaults to 10,000
-    if (windowHeight < 1000 || windowWidth < 1000){
-        cardLimit = 1000;
+    var cardinalityLimit = 10000; // Cardinality limit defaults to 10,000
+    if (windowHeight < 1000 || windowWidth < 1000){ // Smaller screen have cardinality capped at 1000
+        cardinalityLimit = 1000;
     }
 
     // Make a clone of the parameters to change it without changing the original
     parameters = Object.assign({}, parameters);
-    // Override some parameters for visualization (Maximum 1000 records and two dimensions)
+    // Override some global parameters for visualization (Maximum 10000 records and two dimensions)
     parameters.format = "csv";
-    if (parameters.cardinality > cardLimit){
-        parameters.cardinality = cardLimit;
+    if (parameters.cardinality > cardinalityLimit){
+        parameters.cardinality = cardinalityLimit;
     }
     if (parameters.dimensions > 2){
         parameters.dimensions = 2;
@@ -447,7 +447,7 @@ function isEmpty(object) {
 }
 
 /**
- * Create a new dataset from the current values on the screen
+ * Create a new dataset from the current values on the screen.
  */
 function createDataset() {
     // Extract form values into an object and store it in memory
@@ -514,7 +514,7 @@ function updateDatasetName(dataset) {
 }
 
 /**
- * Recalculate the extents of the entire dataset by aggregating all datasets
+ * Recalculate the extents of the entire dataset by aggregating all datasets.
  */
 function updateMapExtents() {
     var extent = [];
@@ -541,7 +541,7 @@ function getActiveDatasetId() {
 }
 
 /**
- * Event handler for the delete button
+ * Event handler for the delete button.
  * @param {*} event 
  */
 function deleteDataset(e) {
@@ -590,7 +590,7 @@ function showHideDataset(e) {
 // --------------- Form manipulation
 
 /**
- * Validates the values in the form and display an error message if an error is found
+ * Validates the values in the form and display an error message if an error is found.
  */
 function validateForm() {
     var errorMessages = [];
@@ -621,8 +621,8 @@ function validateForm() {
 }
 
 /**
- * Hide input fields that are not applicable to the current distribution
- * and show the ones that are applicable
+ * Hide input fields that are not applicable to the current distribution.
+ * and show the ones that are applicable.
  */
 function hideInputs() {
     var selectedDistribution = jQuery("#distribution").val();
@@ -648,7 +648,7 @@ function hideInputs() {
 }
 
 /**
- * Convert the form information into a JavaScript object
+ * Convert the form information into a JavaScript object.
  */
 function formToJSON() {
     var distribution = jQuery("#distribution").val();
@@ -680,7 +680,7 @@ function formToJSON() {
 }
 
 /**
- * Convert the given JSON object that contains parameters to the form
+ * Convert the given JSON object that contains parameters to the form.
  * @param {object} paramVals 
  */
 function JSONToForm(paramVals) {
@@ -708,7 +708,7 @@ function JSONToForm(paramVals) {
 }
 
 /**
- * Generate a random number in the range [min, max)
+ * Generate a random number in the range (num1, num2).
  * @param {float} num1
  * @param {float} num2
  */
@@ -730,7 +730,7 @@ function bernoulli(p){
 }
 
 /**
- * Generate a random number from a normal distribution with the given mean and standard deviation
+ * Generate a random number from a normal distribution with the given mean and standard deviation.
  * @param {float} mu
  * @param {float} sigma
  */
@@ -751,11 +751,20 @@ function dice(n){
  * @constructor
  */
 class Generator{
-    constructor(card, dim){
-        this.card = card;
-        this.dim = dim;
+
+    /**
+     * @param {int} cardinality
+     * @param {int} dimensions
+     */
+    constructor(cardinality, dimensions){
+        this.cardinality = cardinality;
+        this.dimensions = dimensions;
     }
 
+    /**
+     * Parses and sets the affine matrix as class member.
+     * @param {object} parameters
+     */
     setAffineMatrix(parameters){
         this.affineMatrix = parameters.affinematrix;
         if (this.affineMatrix){
@@ -763,6 +772,11 @@ class Generator{
         }
     }
 
+    /**
+     * Check if a point is valid.
+     * @param {object} point
+     * @returns {boolean}
+     */
     isValidPoint(point){
         for (const x of point){
             if (x < 0 || x > 1){
@@ -777,7 +791,12 @@ class Generator{
         throw "Using abstract function";
     }
 
-    //creates box given min and max coordinates from point
+    /**
+     * Creates box given min and max coordinates from point.
+     * @param {object} minCoordinates
+     * @param {object} maxCoordinates
+     * @returns {feature} openlayers feature
+     */
     pointToBox(minCoordinates, maxCoordinates){ 
         var coordinates = [];
         for (let i = 0; i < minCoordinates.length; i++){
@@ -800,12 +819,17 @@ class Generator{
 
 /**
  * Base class for all uniform, diagonal, guassian, sierpinski, and bit generators. 
- * Inherits from Generator Base class.
  * @constructor
+ * @extends Generator
  */
 class DataGenerator extends Generator{
-    constructor(card, dim){
-        super(card, dim);
+
+    /**
+     * @param {int} cardinality
+     * @param {int} dimensions
+     */
+    constructor(cardinality, dimensions){
+        super(cardinality, dimensions);
     }
     
     //abstract
@@ -813,12 +837,17 @@ class DataGenerator extends Generator{
         throw "Using abstract function";
     }
 
+    /**
+     * Generates data and displays it on to the screen.
+     * @param {object} source
+     * @param {object} parameters
+     */
     generate(source, parameters){
         let i = 0;
         var prevpoint = null;
         this.setAffineMatrix(parameters);
 
-        while (i < this.card){
+        while (i < this.cardinality){
             var newpoint = this.generatePoint(i, prevpoint);
             if (this.isValidPoint(newpoint)){
 
@@ -851,18 +880,29 @@ class DataGenerator extends Generator{
 }
 
 /**
- * Generates uniformly distributed points
- * Inherits from DataGenerator Base class.
+ * Generates uniformly distributed points.
  * @constructor
+ * @extends DataGenerator
  */
-class UniformGenerator extends DataGenerator{
-    constructor(card, dim){
-        super(card, dim);
+class UniformGenerator extends DataGenerator {
+
+    /**
+     * @param {int} cardinality
+     * @param {int} dimensions
+     */
+    constructor(cardinality, dimensions){
+        super(cardinality, dimensions);
     }
 
+    /**
+     * Generates a single point based on uniform distribution.
+     * @param {int} i
+     * @param {object} prev_point
+     * @returns {Array[int]} point as Array[int]
+     */
     generatePoint(i, prev_point){
         let arr = [];
-        for (let d = 0; d < this.dim; d++){
+        for (let d = 0; d < this.dimensions; d++){
             arr.push(rng.quick());
         }
         return arr;
@@ -870,22 +910,33 @@ class UniformGenerator extends DataGenerator{
 }
 
 /**
- * Generates points from a diagonal distribution
- * Inherits from DataGenerator Base class.
+ * Generates points from a diagonal distribution.
  * @constructor
+ * @extends DataGenerator
  */
 class DiagonalGenerator extends DataGenerator {
-    constructor(card, dim, percentage, buffer){
-        super(card, dim);
+
+    /**
+     * @param {int} cardinality
+     * @param {int} dimensions
+     */
+    constructor(cardinality, dimensions, percentage, buffer){
+        super(cardinality, dimensions);
         this.percentage = percentage;
         this.buffer = buffer;
     }
 
+    /**
+     * Generates a single point based on diagonal distribution.
+     * @param {int} i
+     * @param {object} prev_point
+     * @returns {Array[int]} point as Array[int]
+     */
     generatePoint(i, prev_point){
         let arr = [];
         if (bernoulli(this.percentage) == 1){
             let r = rng.quick();
-            for (let d = 0; d < this.dim; d++){
+            for (let d = 0; d < this.dimensions; d++){
                 arr.push(r);
             }
             return arr;
@@ -893,7 +944,7 @@ class DiagonalGenerator extends DataGenerator {
         else {
             let c = rng.quick();
             let d = normal(0, this.buffer / 5);
-            for (let x = 0; x < this.dim; x++){
+            for (let x = 0; x < this.dimensions; x++){
                 arr.push((c + (1 - 2 * (x % 2)) * d / Math.sqrt(2)));
             }
             return arr;
@@ -903,17 +954,28 @@ class DiagonalGenerator extends DataGenerator {
 
 /**
  * Generates Gaussian distributed points
- * Inherits from DataGenerator Base class.
  * @constructor
+ * @extends DataGenerator
  */
-class GaussianGenerator extends DataGenerator{  
-    constructor(card, dim){
-        super(card, dim);
+class GaussianGenerator extends DataGenerator {
+    
+    /**
+     * @param {int} cardinality
+     * @param {int} dimensions
+     */
+    constructor(cardinality, dimensions){
+        super(cardinality, dimensions);
     }
 
+    /**
+     * Generates a single point based on Gaussian distribution.
+     * @param {int} i
+     * @param {object} prev_point
+     * @returns {Array[int]} point as Array[int]
+     */
     generatePoint(i, prev_point){
         let arr = [];
-        for (let d = 0; d < this.dim; d++){
+        for (let d = 0; d < this.dimensions; d++){
             arr.push(normal(0.5, 0.1));
         }
         return arr;
@@ -922,14 +984,25 @@ class GaussianGenerator extends DataGenerator{
 
 /**
  * Generates Sierpinski distributed points
- * Inherits from DataGenerator Base class.
  * @constructor
+ * @extends DataGenerator
  */
 class SierpinskiGenerator extends DataGenerator {
-    constructor(card, dim){
-        super(card, dim);
+
+    /**
+     * @param {int} cardinality
+     * @param {int} dimensions
+     */
+    constructor(cardinality, dimensions){
+        super(cardinality, dimensions);
     }
 
+    /**
+     * Generates a single point based on Sierpinski distribution.
+     * @param {int} i
+     * @param {object} prev_point
+     * @returns {Array[int]} point as Array[int]
+     */
     generatePoint(i, prev_point){
         if (i == 0){
             return [0.0, 0.0];
@@ -954,6 +1027,12 @@ class SierpinskiGenerator extends DataGenerator {
         }
     }
 
+    /**
+     * Finds the middle point of 2 points passed in.
+     * @param {object} point1
+     * @param {object} point2
+     * @returns {Array[int]} point as Array[int]
+     */
     getMiddlePoint(point1, point2){
         let arr = [];
         for (let i = 0; i < point1.length; i++){
@@ -965,36 +1044,62 @@ class SierpinskiGenerator extends DataGenerator {
 
 /**
  * Generates points from a bit distribution
- * Inherits from DataGenerator Base class.
  * @constructor
+ * @extends DataGenerator
  */
  class BitGenerator extends DataGenerator {
-    constructor(card, dim, prob, digits){
-        super(card, dim);
-        this.prob = prob;
+
+    /**
+     * @param {int} cardinality
+     * @param {int} dimensions
+     */
+    constructor(cardinality, dimensions, probability, digits){
+        super(cardinality, dimensions);
+        this.probability = probability;
         this.digits = digits;
     }
 
+    /**
+     * Generates a single point based on Bit distribution.
+     * @param {int} i
+     * @param {object} prev_point
+     * @returns {Array[int]} point as Array[int]
+     */
     generatePoint(i, prev_point){
         let arr = [];
-        for (let d = 0; d < this.dim; d++){
+        for (let d = 0; d < this.dimensions; d++){
             arr.push(this.bit());
         }
         return arr;
     }
 
+    /**
+     * Generates a bit number using bernoulli random number and digits.
+     * @returns {float}
+     */
     bit(){
         var num = 0.0;
         for (let i = 0; i < this.digits; i++){
-            var c = bernoulli(this.prob);
+            var c = bernoulli(this.probability);
             num = num + c / Math.pow(2, i + 1);
         }
         return num;
     }
 }
 
-// A two-dimensional box with depth field. Used with the parcel generator
+/**
+ * A two-dimensional box with depth field. Used with the parcel generator
+ * @constructor
+ */
 class BoxWithDepth {
+
+    /**
+     * @param {int} depth
+     * @param {float} x
+     * @param {float} y
+     * @param {float} width
+     * @param {float} height
+     */
     constructor(depth, x, y, width, height){
         this.depth = depth; //int
         this.x = x; //float
@@ -1006,16 +1111,26 @@ class BoxWithDepth {
 
 /**
  * Generates points from a parcel distribution. Only supports boxes.
- * Inherits from Generator Base class.
  * @constructor
+ * @extends Generator
  */
 class ParcelGenerator extends Generator{
-    constructor(card, dim, split_range, dither){
-        super(card, dim);
+
+    /**
+     * @param {int} cardinality
+     * @param {int} dimensions
+     */
+    constructor(cardinality, dimensions, split_range, dither){
+        super(cardinality, dimensions);
         this.split_range = split_range;
         this.dither = dither;
     }
 
+    /**
+     * Generates Parcel Generator boxes.
+     * @param {object} source
+     * @param {object} parameters
+     */
     generate(source, parameters){
         // Using dataclass to create BoxWithDepth, which stores depth of each box in the tree
         // Depth is used to determine at which level to stop splitting and start printing    
@@ -1023,15 +1138,15 @@ class ParcelGenerator extends Generator{
         var boxes = [];
         boxes.push(box);
 
-        var max_height = Math.ceil(Math.log2(this.card));
+        var max_height = Math.ceil(Math.log2(this.cardinality));
 
         // We will print some boxes at last level and the remaining at the second to last level 
         // Number of boxes to split on the second to last level
-        var numToSplit = this.card - Math.pow(2, Math.max(max_height - 1, 0));
+        var numToSplit = this.cardinality - Math.pow(2, Math.max(max_height - 1, 0));
         var numSplit = 0;
         var boxes_generated = 0;
 
-        while (boxes_generated < this.card){
+        while (boxes_generated < this.cardinality){
 
             var b = boxes.pop();
 
@@ -1056,6 +1171,11 @@ class ParcelGenerator extends Generator{
         }
     }
 
+    /**
+     * Splits BoxWithDepth into 2, depending on width and height.
+     * @param {BoxWithDepth} b
+     * @returns {Array[BoxWithDepth]} Array of 2 Boxes
+     */
     split(b){
         if (b.w > b.h){
             // Split vertically if width is bigger than height
@@ -1075,6 +1195,12 @@ class ParcelGenerator extends Generator{
         return splitBoxes;
     }
 
+    /**
+     * Dithers BoxWithDepth and displays box to screen.
+     * @param {BoxWithDepth} b
+     * @param {object} source
+     * @param {object} parameters
+     */
     ditherAndPrint(b, source, parameters){
         let ditherX = b.w * uniform(0.0, this.dither);
         b.x += ditherX / 2;
@@ -1102,8 +1228,10 @@ class ParcelGenerator extends Generator{
 }
 
 /**
- * Selects a generator to use based on parameters
- * @param {object} parameters 
+ * Selects a generator to use based on parameters.
+ * Checks bounds of generator specific parameters.
+ * @param {object} parameters
+ * @returns {Generator} correct type of generator
  */
  function createGenerator(parameters) {
     var generator = null;
@@ -1112,6 +1240,20 @@ class ParcelGenerator extends Generator{
         generator = new UniformGenerator(parameters.cardinality, parameters.dimensions);
     }
     else if (parameters.distribution == "diagonal"){
+        if (parameters.percentage < 0){
+            parameters.percentage = 0;
+        }
+        else if (parameters.percentage > 1){
+            parameters.percentage = 1;
+        }
+
+        if (parameters.buffer < 0){
+            parameters.buffer = 0;
+        }
+        else if (parameters.buffer > 1){
+            parameters.buffer = 1;
+        }
+
         generator = new DiagonalGenerator(parameters.cardinality, parameters.dimensions, parameters.percentage, parameters.buffer);
     }
     else if (parameters.distribution == "gaussian"){
@@ -1121,9 +1263,34 @@ class ParcelGenerator extends Generator{
         generator = new SierpinskiGenerator(parameters.cardinality, parameters.dimensions);
     }
     else if (parameters.distribution == "bit"){
+        if (parameters.probability < 0){
+            parameters.probability = 0;
+        }
+        else if (parameters.probability > 1){
+            parameters.probability = 1;
+        }
+
+        if (parameters.digits < 0){
+            parameters.digits = 0;
+        }
+
         generator = new BitGenerator(parameters.cardinality, parameters.dimensions, parameters.probability, parameters.digits);
     }
     else if (parameters.distribution == "parcel"){
+        if (parameters.srange < 0){
+            parameters.srange = 0;
+        }
+        else if (parameters.srange > 0.5){
+            parameters.srange = 0.5;
+        }
+
+        if (parameters.dither < 0){
+            parameters.dither = 0;
+        }
+        else if (parameters.dither > 1){
+            parameters.dither = 1;
+        }
+
         generator = new ParcelGenerator(parameters.cardinality, parameters.dimensions, parameters.srange, parameters.dither);
     }
 

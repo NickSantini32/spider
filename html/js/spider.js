@@ -613,7 +613,10 @@ function validateForm() {
     zeroToOne.forEach(function(key) {
         if (formValues[key]) {
             var value = parseFloat(formValues[key]);
-            if (value < 0 || value > 1)
+            if (key == "srange" && (value < 0 || value > 0.5)){
+                errorMessages.push(key+" must be in the range [0, 0.5]")
+            }
+            else if (value < 0 || value > 1)
                 errorMessages.push(key+" must be in the range [0, 1]")
         }
     })

@@ -365,7 +365,7 @@ function createMapLayer(layer) {
     var windowHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
     
     var cardinalityLimit = 10000; // Cardinality limit defaults to 10,000
-    if (windowHeight < 1000 || windowWidth < 1000){ // Smaller screen have cardinality capped at 1000
+    if (windowHeight < 775 || windowWidth < 950){ // Smaller screen have cardinality capped at 1000
         cardinalityLimit = 1000;
     }
 

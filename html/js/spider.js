@@ -1,3 +1,5 @@
+//seeded random generator
+var rng;
 // The path (relative to the current path) of the generator
 var generatorPath;
 // A cyclic list of colors to use for all layers
@@ -33,7 +35,7 @@ const shortNames = {
 
 // Main function
 jQuery(function() {
-    generatorPath = jQuery("#data-form").attr("action")
+    generatorPath = jQuery("#data-form").attr("action");
     // Initialize the controls
     jQuery("#data-form").submit(formSubmit);
     // Add a new layer when the addLayerButton is clicked
@@ -42,10 +44,10 @@ jQuery(function() {
     jQuery("#distribution").change(hideInputs);
     jQuery("#geometry").change(hideInputs);
     // Validate the form values
-    jQuery("#data-form input").change(validateForm)
-    jQuery("#data-form select").change(validateForm)
-    jQuery("#data-form input").change(saveLayerChanges)
-    jQuery("#data-form select").change(saveLayerChanges)
+    jQuery("#data-form input").change(validateForm);
+    jQuery("#data-form select").change(validateForm);
+    jQuery("#data-form input").change(saveLayerChanges);
+    jQuery("#data-form select").change(saveLayerChanges);
     // Create the map
     initializeMap();
     // If parameters are provided through permalink, use them to populate the on-screen form
@@ -57,10 +59,10 @@ jQuery(function() {
     hideInputs();
     // Events for datasets
     jQuery(".layers .deleteButton").click(deleteDataset);
-    jQuery(".layers .zoomAllButton").click(zoomAllDataset)
-    jQuery(".layers .visibleButton").click(showHideDataset)
-    jQuery(".layers input[name=activedataset]").change(activeLayerChanged)
-    jQuery("#affine-transform .section-heading").click(showHideAffineTransformation)
+    jQuery(".layers .zoomAllButton").click(zoomAllDataset);
+    jQuery(".layers .visibleButton").click(showHideDataset);
+    jQuery(".layers input[name=activedataset]").change(activeLayerChanged);
+    jQuery("#affine-transform .section-heading").click(showHideAffineTransformation);
 });
 
 function showHideAffineTransformation() {
@@ -168,7 +170,7 @@ function getDatasetById(datasetId) {
 }
 
 /**
- * Populate the form from the currently selected dataset
+ * Populate the form from the currently selected dataset.
  */
 function activeLayerChanged() {
     var activeLayer = getDatasetById(getActiveDatasetId());
@@ -187,7 +189,7 @@ function highlightActiveLayer() {
 }
 
 /**
- * Form a download URL for the data in the form
+ * Form a download URL for the data in the form.
  */
 function createDownloadLink(parameters) {
     // Make a clone to change the parameters
@@ -199,6 +201,7 @@ function createDownloadLink(parameters) {
         parameters.maxsize = parameters.maxsize.join(",")
     if (!parameters.seed)
         parameters.seed = new Date().getTime()
+    rng = new Math.seedrandom(parameters.seed);
     var downloadURL = generatorPath+"?";
     Object.keys(parameters).forEach(function(key) {
         downloadURL += `${key}=${parameters[key]}&`
@@ -207,7 +210,7 @@ function createDownloadLink(parameters) {
 }
 
 /**
- * Create a permalink based on the data of the current form
+ * Create a permalink based on the data of the current form.
  */
 function createPermalink(parameters) {
     var permalink = window.location.origin + window.location.pathname + "?";
@@ -232,7 +235,7 @@ function createPermalink(parameters) {
 }
 
 /**
- * Use the URL parameters to populate the form at page load
+ * Use the URL parameters to populate the form at page load.
  */
 function populateFormFromURL() {
     var url = window.location.href;
@@ -308,7 +311,7 @@ function initializeMap() {
 }
 
 /**
- * Goes through the list of colors and choose one that is least used
+ * Goes through the list of colors and choose one that is least used.
  */
 function chooseAvailableColor() {
     // Count how many times each color is used
@@ -328,33 +331,7 @@ function chooseAvailableColor() {
 }
 
 /**
- * Create a URL that generates data in a form that can be visualized using OpenLayers
- * @param {Object} parameters 
- */
-function getVisualizationURL(parameters) {
-    var visualizationURL = generatorPath+"?";
-    // Make a clone of the parameters to change it without changing the original
-    parameters = Object.assign({}, parameters);
-    // Override some parameters for visualization (Maximum 1000 records and two dimensions)
-    if (parameters.cardinality > 1000)
-        parameters.cardinality = 1000;
-    if (parameters.dimensions > 2)
-        parameters.dimensions = 2;
-    parameters.format = "csv";
-    if (parameters.affinematrix)
-        parameters.affinematrix = parameters.affinematrix.join(",")
-    if (parameters.maxsize)
-        parameters.maxsize = parameters.maxsize.join(",")
-    if (!parameters.seed)
-        parameters.seed = new Date().getTime()
-    Object.keys(parameters).forEach(function(key) {
-        visualizationURL += `${key}=${parameters[key]}&`
-    });
-    return visualizationURL;
-}
-
-/**
- * Create a layer to add in the map for visualizing the given layer object
+ * Create a layer to add in the map for visualizing the given layer object.
  * @param {layer} layer 
  */
 function createMapLayer(layer) {
@@ -377,73 +354,79 @@ function createMapLayer(layer) {
 }
 
 /**
- * Update the visualization on the screen to match the given parameters
+ * Update the visualization on the screen to match the given parameters.
  * @param {MapLayer} mapLayer the layer on the map
  * @param {Object} parameters the parameters to use for the visualization 
  */
-function refreshLayerVisualization(mapLayer, parameters) {
-    /** Create a point from a CSV line */
-    function parsePoint(line) {
-        var coordinates = line.split(",").map(function(c) {return parseFloat(c); })
-        return new ol.geom.Point(coordinates)
-    }
-    /**Create a box from a CSV line */
-    function parseBox(line) {
-        var coordinates = line.split(",").map(function(c) {return parseFloat(c); })
-        return new ol.geom.LineString([
-            [coordinates[0], coordinates[1]],
-            [coordinates[2], coordinates[1]],
-            [coordinates[2], coordinates[3]],
-            [coordinates[0], coordinates[3]],
-            [coordinates[0], coordinates[1]]
-        ]);
-    }
-    // Choose the correct parser based on the geometry type
-    var parseGeometry;
-    if (parameters.geometry === "point")
-        parseGeometry = parsePoint;
-    else
-        parseGeometry = parseBox;
-    // Get the data and use it to update the visualization
-    jQuery.get(getVisualizationURL(parameters), function(data) {
-        // Data is in CSV format
-        var source = mapLayer.getSource();
-        source.clear();
-        data.split("\n").forEach(function(line) {
-            if (line.length > 1) {
-                var feature = new ol.Feature({geometry: parseGeometry(line)})
-                source.addFeature(feature);
-            }
-        })
-        // Add an MBR that represents the extents of the layer
-        var coordinates = [
-            [0.0, 0.0],
-            [1.0, 0.0],
-            [1.0, 1.0],
-            [0.0, 1.0],
-            [0.0, 0.0]
-        ];
-        var affineMatrix = parameters.affinematrix;
-        if (affineMatrix) {
-            coordinates = coordinates.map(function(coord) {
-                return affineTransform(coord, affineMatrix);
-            });
-        }
-        var boundary = new ol.geom.LineString(coordinates)
-        source.addFeature(new ol.Feature({geometry: boundary}));
+ function refreshLayerVisualization(mapLayer, parameters) {
 
-        // Update the zoom all button based on all datasets including the newly generated dataset
-        updateMapExtents();
+    //Window dimensions for customized cardinality upper limits
+    var windowWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+    var windowHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
+    
+    var cardinalityLimit = 10000; // Cardinality limit defaults to 10,000
+    if (windowHeight < 775 || windowWidth < 950){ // Smaller screen have cardinality capped at 1000
+        cardinalityLimit = 1000;
+    }
 
-        if (firstDataset) {
-            map.getView().fit(zoomAllControl.extent)
-            firstDataset = false
-        }
-    })
+    // Make a clone of the parameters to change it without changing the original
+    parameters = Object.assign({}, parameters);
+    // Override some global parameters for visualization (Maximum 10000 records and two dimensions)
+    parameters.format = "csv";
+    if (parameters.cardinality > cardinalityLimit){
+        parameters.cardinality = cardinalityLimit;
+    }
+    if (parameters.dimensions > 2){
+        parameters.dimensions = 2;
+    }
+    if (parameters.affinematrix){
+        parameters.affinematrix = parameters.affinematrix.join(",");
+    }
+    if (parameters.maxsize){
+        parameters.maxsize = parameters.maxsize.join(",");
+    }
+    if (!parameters.seed){
+        parameters.seed = new Date().getTime();
+    }
+
+    rng = new Math.seedrandom(parameters.seed);
+
+    var source = mapLayer.getSource();
+    source.clear();
+
+    var generator = createGenerator(parameters);
+    generator.generate(source, parameters);
+
+    // Add an MBR that represents the extents of the layer
+    var coordinates = [
+        [0.0, 0.0],
+        [1.0, 0.0],
+        [1.0, 1.0],
+        [0.0, 1.0],
+        [0.0, 0.0]
+    ];
+
+    var affineMatrix = parameters.affinematrix;
+    if (affineMatrix) {
+        affineMatrix = parameters.affinematrix.split(",").map(function(c) {return parseFloat(c)});
+        coordinates = coordinates.map(function(coord) {
+            return affineTransform(coord, affineMatrix);
+        });
+    }
+
+    var boundary = new ol.geom.LineString(coordinates);
+    source.addFeature(new ol.Feature({geometry: boundary}));
+
+    // Update the zoom all button based on all datasets including the newly generated dataset
+    updateMapExtents();
+
+    if (firstDataset) {
+        map.getView().fit(zoomAllControl.extent);
+        firstDataset = false;
+    }
 }
 
 /**
- * 
  * @param {float[2]} point 
  * @param {float[6]} matrix 
  */
@@ -464,7 +447,7 @@ function isEmpty(object) {
 }
 
 /**
- * Create a new dataset from the current values on the screen
+ * Create a new dataset from the current values on the screen.
  */
 function createDataset() {
     // Extract form values into an object and store it in memory
@@ -531,7 +514,7 @@ function updateDatasetName(dataset) {
 }
 
 /**
- * Recalculate the extents of the entire dataset by aggregating all datasets
+ * Recalculate the extents of the entire dataset by aggregating all datasets.
  */
 function updateMapExtents() {
     var extent = [];
@@ -558,7 +541,7 @@ function getActiveDatasetId() {
 }
 
 /**
- * Event handler for the delete button
+ * Event handler for the delete button.
  * @param {*} event 
  */
 function deleteDataset(e) {
@@ -595,7 +578,7 @@ function zoomAllDataset(e) {
     e.preventDefault();
 }
 
-function showHideDataset() {
+function showHideDataset(e) {
     var selectedDatasetId = parseInt(jQuery(this).parents("li").find("input[type=radio]").val());
     var show = jQuery(this).parents("li").find("input[type=checkbox]").prop("checked")
     show = !show
@@ -607,7 +590,7 @@ function showHideDataset() {
 // --------------- Form manipulation
 
 /**
- * Validates the values in the form and display an error message if an error is found
+ * Validates the values in the form and display an error message if an error is found.
  */
 function validateForm() {
     var errorMessages = [];
@@ -630,7 +613,10 @@ function validateForm() {
     zeroToOne.forEach(function(key) {
         if (formValues[key]) {
             var value = parseFloat(formValues[key]);
-            if (value < 0 || value > 1)
+            if (key == "srange" && (value < 0 || value > 0.5)){
+                errorMessages.push(key+" must be in the range [0, 0.5]")
+            }
+            else if (value < 0 || value > 1)
                 errorMessages.push(key+" must be in the range [0, 1]")
         }
     })
@@ -638,34 +624,34 @@ function validateForm() {
 }
 
 /**
- * Hide input fields that are not applicable to the current distribution
- * and show the ones that are applicable
+ * Hide input fields that are not applicable to the current distribution.
+ * and show the ones that are applicable.
  */
 function hideInputs() {
     var selectedDistribution = jQuery("#distribution").val();
     for (inputName in fEnableObj) {
-        var inputField = jQuery(`input[name='${inputName}']`)
+        var inputField = jQuery(`input[name='${inputName}']`);
         if (fEnableObj[inputName] === selectedDistribution)
-            inputField.parent("label").removeClass("hidden")
+            inputField.parent("label").removeClass("hidden");
         else
-            inputField.parent("label").addClass("hidden")
+            inputField.parent("label").addClass("hidden");
     }
     if (selectedDistribution === "parcel") {
-        jQuery("#geometry-box").prop("checked", true)
-        jQuery("select#geometry").attr("disabled", true)
-        jQuery(".inputfield.maxsize").addClass("hidden")
+        jQuery("#geometry-box").prop("checked", true);
+        jQuery("select#geometry").attr("disabled", true);
+        jQuery(".inputfield.maxsize").addClass("hidden");
     } else {
         jQuery("select#geometry").attr("disabled", false)
         if (jQuery("#geometry").val() == "box") {
-            jQuery(".inputfield.maxsize").removeClass("hidden")
+            jQuery(".inputfield.maxsize").removeClass("hidden");
         } else {
-            jQuery(".inputfield.maxsize").addClass("hidden")
+            jQuery(".inputfield.maxsize").addClass("hidden");
         }
     }
 }
 
 /**
- * Convert the form information into a JavaScript object
+ * Convert the form information into a JavaScript object.
  */
 function formToJSON() {
     var distribution = jQuery("#distribution").val();
@@ -697,7 +683,7 @@ function formToJSON() {
 }
 
 /**
- * Convert the given JSON object that contains parameters to the form
+ * Convert the given JSON object that contains parameters to the form.
  * @param {object} paramVals 
  */
 function JSONToForm(paramVals) {
@@ -722,4 +708,594 @@ function JSONToForm(paramVals) {
         }
     }
     hideInputs();
+}
+
+/**
+ * Generate a random number in the range (num1, num2).
+ * @param {float} num1
+ * @param {float} num2
+ */
+function uniform(num1, num2){
+    return rng.quick() * Math.abs(num1 - num2) + Math.min(num1, num2);
+}
+
+/**
+ * Generate a random number from a Bernoulli distribution
+ * @param {float} p
+ */
+function bernoulli(p){
+    if (rng.quick() < p) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
+}
+
+/**
+ * Generate a random number from a normal distribution with the given mean and standard deviation.
+ * @param {float} mu
+ * @param {float} sigma
+ */
+function normal(mu, sigma){
+    return mu + sigma * Math.sqrt(-2 * Math.log(rng.quick())) * Math.sin(2 * Math.PI * rng.quick());
+}
+
+/**
+ * Generate a random integer number in the range [1, n]
+ * @param {float} n
+ */
+function dice(n){
+    return Math.floor(rng.quick() * n) + 1;
+}
+
+/**
+ * Base class for all data generators.
+ * @constructor
+ */
+class Generator{
+
+    /**
+     * @param {int} cardinality
+     * @param {int} dimensions
+     */
+    constructor(cardinality, dimensions){
+        this.cardinality = cardinality;
+        this.dimensions = dimensions;
+    }
+
+    /**
+     * Parses and sets the affine matrix as class member.
+     * @param {object} parameters
+     */
+    setAffineMatrix(parameters){
+        this.affineMatrix = parameters.affinematrix;
+        if (this.affineMatrix){
+            this.affineMatrix = parameters.affinematrix.split(",").map(function(c) {return parseFloat(c)});
+        }
+    }
+
+    /**
+     * Check if a point is valid.
+     * @param {object} point
+     * @returns {boolean}
+     */
+    isValidPoint(point){
+        for (const x of point){
+            if (x < 0 || x > 1){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    //abstract
+    generate(source, parameters){
+        throw "Using abstract function";
+    }
+
+    /**
+     * Creates box given min and max coordinates from point.
+     * @param {object} minCoordinates
+     * @param {object} maxCoordinates
+     * @returns {feature} openlayers feature
+     */
+    pointToBox(minCoordinates, maxCoordinates){ 
+        var coordinates = [];
+        for (let i = 0; i < minCoordinates.length; i++){
+            coordinates.push(minCoordinates[i]);
+        }
+        for (let i = 0; i < maxCoordinates.length; i++){
+            coordinates.push(maxCoordinates[i]);
+        }
+        var feature = new ol.Feature({geometry: new ol.geom.LineString([
+                [coordinates[0], coordinates[1]],
+                [coordinates[2], coordinates[1]],
+                [coordinates[2], coordinates[3]],
+                [coordinates[0], coordinates[3]],
+                [coordinates[0], coordinates[1]]
+            ])
+        });
+        return feature;
+    }
+}
+
+/**
+ * Base class for all uniform, diagonal, guassian, sierpinski, and bit generators. 
+ * @constructor
+ * @extends Generator
+ */
+class DataGenerator extends Generator{
+
+    /**
+     * @param {int} cardinality
+     * @param {int} dimensions
+     */
+    constructor(cardinality, dimensions){
+        super(cardinality, dimensions);
+    }
+    
+    //abstract
+    generatePoint(i, prevpoint){
+        throw "Using abstract function";
+    }
+
+    /**
+     * Generates data and displays it on to the screen.
+     * @param {object} source
+     * @param {object} parameters
+     */
+    generate(source, parameters){
+        let i = 0;
+        var prevpoint = null;
+        this.setAffineMatrix(parameters);
+
+        while (i < this.cardinality){
+            var newpoint = this.generatePoint(i, prevpoint);
+            if (this.isValidPoint(newpoint)){
+
+                if (this.affineMatrix){
+                    newpoint = affineTransform(newpoint, this.affineMatrix);
+                }
+
+                var feature;
+                if (parameters.geometry == "point"){
+                    feature = new ol.Feature({geometry: new ol.geom.Point(newpoint)});
+                }
+                else if (parameters.geometry == "box"){
+                    var minCoordinates = [];
+                    var maxCoordinates = [];
+                    for (let d = 0; d < newpoint.length; d++){
+                        var maxsize = parameters.maxsize.split(",").map(function(c) {return parseFloat(c)});
+                        let size = uniform(0, maxsize[d]);
+                        minCoordinates.push(newpoint[d] - size);
+                        maxCoordinates.push(newpoint[d] + size);
+                    }
+                    feature = this.pointToBox(minCoordinates, maxCoordinates);
+                }
+
+                source.addFeature(feature); //write feature to the screen
+                prevpoint = newpoint;
+                i += 1;
+            }
+        }
+    }
+}
+
+/**
+ * Generates uniformly distributed points.
+ * @constructor
+ * @extends DataGenerator
+ */
+class UniformGenerator extends DataGenerator {
+
+    /**
+     * @param {int} cardinality
+     * @param {int} dimensions
+     */
+    constructor(cardinality, dimensions){
+        super(cardinality, dimensions);
+    }
+
+    /**
+     * Generates a single point based on uniform distribution.
+     * @param {int} i
+     * @param {object} prev_point
+     * @returns {Array[int]} point as Array[int]
+     */
+    generatePoint(i, prev_point){
+        let arr = [];
+        for (let d = 0; d < this.dimensions; d++){
+            arr.push(rng.quick());
+        }
+        return arr;
+    }
+}
+
+/**
+ * Generates points from a diagonal distribution.
+ * @constructor
+ * @extends DataGenerator
+ */
+class DiagonalGenerator extends DataGenerator {
+
+    /**
+     * @param {int} cardinality
+     * @param {int} dimensions
+     */
+    constructor(cardinality, dimensions, percentage, buffer){
+        super(cardinality, dimensions);
+        this.percentage = percentage;
+        this.buffer = buffer;
+    }
+
+    /**
+     * Generates a single point based on diagonal distribution.
+     * @param {int} i
+     * @param {object} prev_point
+     * @returns {Array[int]} point as Array[int]
+     */
+    generatePoint(i, prev_point){
+        let arr = [];
+        if (bernoulli(this.percentage) == 1){
+            let r = rng.quick();
+            for (let d = 0; d < this.dimensions; d++){
+                arr.push(r);
+            }
+            return arr;
+        }
+        else {
+            let c = rng.quick();
+            let d = normal(0, this.buffer / 5);
+            for (let x = 0; x < this.dimensions; x++){
+                arr.push((c + (1 - 2 * (x % 2)) * d / Math.sqrt(2)));
+            }
+            return arr;
+        }
+    }
+}
+
+/**
+ * Generates Gaussian distributed points
+ * @constructor
+ * @extends DataGenerator
+ */
+class GaussianGenerator extends DataGenerator {
+    
+    /**
+     * @param {int} cardinality
+     * @param {int} dimensions
+     */
+    constructor(cardinality, dimensions){
+        super(cardinality, dimensions);
+    }
+
+    /**
+     * Generates a single point based on Gaussian distribution.
+     * @param {int} i
+     * @param {object} prev_point
+     * @returns {Array[int]} point as Array[int]
+     */
+    generatePoint(i, prev_point){
+        let arr = [];
+        for (let d = 0; d < this.dimensions; d++){
+            arr.push(normal(0.5, 0.1));
+        }
+        return arr;
+    }
+}
+
+/**
+ * Generates Sierpinski distributed points
+ * @constructor
+ * @extends DataGenerator
+ */
+class SierpinskiGenerator extends DataGenerator {
+
+    /**
+     * @param {int} cardinality
+     * @param {int} dimensions
+     */
+    constructor(cardinality, dimensions){
+        super(cardinality, dimensions);
+    }
+
+    /**
+     * Generates a single point based on Sierpinski distribution.
+     * @param {int} i
+     * @param {object} prev_point
+     * @returns {Array[int]} point as Array[int]
+     */
+    generatePoint(i, prev_point){
+        if (i == 0){
+            return [0.0, 0.0];
+        }
+        else if (i == 1){
+            return [1.0, 0.0];
+        }
+        else if (i == 2){
+            return [0.5, Math.sqrt(3) / 2];
+        }
+        else {
+            let d = dice(5);
+            if (d == 1 || d == 2){
+                return this.getMiddlePoint(prev_point, [0.0, 0.0]);
+            }
+            else if (d == 3 || d == 4){
+                return this.getMiddlePoint(prev_point, [1.0, 0.0]);
+            }
+            else {
+                return this.getMiddlePoint(prev_point, [0.5, Math.sqrt(3) / 2]);
+            }
+        }
+    }
+
+    /**
+     * Finds the middle point of 2 points passed in.
+     * @param {object} point1
+     * @param {object} point2
+     * @returns {Array[int]} point as Array[int]
+     */
+    getMiddlePoint(point1, point2){
+        let arr = [];
+        for (let i = 0; i < point1.length; i++){
+            arr.push((point1[i] + point2[i]) / 2);
+        }
+        return arr;
+    }
+}
+
+/**
+ * Generates points from a bit distribution
+ * @constructor
+ * @extends DataGenerator
+ */
+ class BitGenerator extends DataGenerator {
+
+    /**
+     * @param {int} cardinality
+     * @param {int} dimensions
+     */
+    constructor(cardinality, dimensions, probability, digits){
+        super(cardinality, dimensions);
+        this.probability = probability;
+        this.digits = digits;
+    }
+
+    /**
+     * Generates a single point based on Bit distribution.
+     * @param {int} i
+     * @param {object} prev_point
+     * @returns {Array[int]} point as Array[int]
+     */
+    generatePoint(i, prev_point){
+        let arr = [];
+        for (let d = 0; d < this.dimensions; d++){
+            arr.push(this.bit());
+        }
+        return arr;
+    }
+
+    /**
+     * Generates a bit number using bernoulli random number and digits.
+     * @returns {float}
+     */
+    bit(){
+        var num = 0.0;
+        for (let i = 0; i < this.digits; i++){
+            var c = bernoulli(this.probability);
+            num = num + c / Math.pow(2, i + 1);
+        }
+        return num;
+    }
+}
+
+/**
+ * A two-dimensional box with depth field. Used with the parcel generator
+ * @constructor
+ */
+class BoxWithDepth {
+
+    /**
+     * @param {int} depth
+     * @param {float} x
+     * @param {float} y
+     * @param {float} width
+     * @param {float} height
+     */
+    constructor(depth, x, y, width, height){
+        this.depth = depth; //int
+        this.x = x; //float
+        this.y = y; //float
+        this.w = width; //float
+        this.h = height; //float
+    }
+}
+
+/**
+ * Generates points from a parcel distribution. Only supports boxes.
+ * @constructor
+ * @extends Generator
+ */
+class ParcelGenerator extends Generator{
+
+    /**
+     * @param {int} cardinality
+     * @param {int} dimensions
+     */
+    constructor(cardinality, dimensions, split_range, dither){
+        super(cardinality, dimensions);
+        this.split_range = split_range;
+        this.dither = dither;
+    }
+
+    /**
+     * Generates Parcel Generator boxes.
+     * @param {object} source
+     * @param {object} parameters
+     */
+    generate(source, parameters){
+        // Using dataclass to create BoxWithDepth, which stores depth of each box in the tree
+        // Depth is used to determine at which level to stop splitting and start printing    
+        let box = new BoxWithDepth(0, 0.0, 0.0, 1.0, 1.0);
+        var boxes = [];
+        boxes.push(box);
+
+        var max_height = Math.ceil(Math.log2(this.cardinality));
+
+        // We will print some boxes at last level and the remaining at the second to last level 
+        // Number of boxes to split on the second to last level
+        var numToSplit = this.cardinality - Math.pow(2, Math.max(max_height - 1, 0));
+        var numSplit = 0;
+        var boxes_generated = 0;
+
+        while (boxes_generated < this.cardinality){
+
+            var b = boxes.pop();
+
+            if (b.depth >= (max_height - 1)){
+                if (numSplit < numToSplit){ //Split at second to last level and print the new boxes
+                    let splitBoxes = this.split(b);
+                    numSplit += 1;
+                    this.ditherAndPrint(splitBoxes[0], source, parameters);
+                    this.ditherAndPrint(splitBoxes[1], source, parameters);
+                    boxes_generated += 2;
+                }
+                else { //Print remaining boxes from the second to last level 
+                    this.ditherAndPrint(b, source, parameters);
+                    boxes_generated += 1;
+                }
+            }
+            else {
+                let splitBoxes = this.split(b);
+                boxes.push(splitBoxes[0]);
+                boxes.push(splitBoxes[1]);
+            }
+        }
+    }
+
+    /**
+     * Splits BoxWithDepth into 2, depending on width and height.
+     * @param {BoxWithDepth} b
+     * @returns {Array[BoxWithDepth]} Array of 2 Boxes
+     */
+    split(b){
+        if (b.w > b.h){
+            // Split vertically if width is bigger than height
+            let split_size = b.w * uniform(this.split_range, 1 - this.split_range);
+            var b1 = new BoxWithDepth(b.depth + 1, b.x, b.y, split_size, b.h);
+            var b2 = new BoxWithDepth(b.depth + 1, b.x + split_size, b.y, b.w - split_size, b.h);
+        }
+        else {
+            // Split horizontally if width is less than height
+            let split_size = b.h * uniform(this.split_range, 1 - this.split_range);
+            var b1 = new BoxWithDepth(b.depth + 1, b.x, b.y, b.w, split_size);
+            var b2 = new BoxWithDepth(b.depth + 1, b.x, b.y + split_size, b.w, b.h - split_size);
+        }
+        let splitBoxes = [];
+        splitBoxes.push(b1);
+        splitBoxes.push(b2);
+        return splitBoxes;
+    }
+
+    /**
+     * Dithers BoxWithDepth and displays box to screen.
+     * @param {BoxWithDepth} b
+     * @param {object} source
+     * @param {object} parameters
+     */
+    ditherAndPrint(b, source, parameters){
+        let ditherX = b.w * uniform(0.0, this.dither);
+        b.x += ditherX / 2;
+        b.w -= ditherX;
+        let ditherY = b.h * uniform(0.0, this.dither);
+        b.y += ditherY / 2;
+        b.h -= ditherY;
+
+        var minCoordinates = [b.x, b.y];
+        var maxCoordinates = [b.x + b.w, b.y + b.h];
+
+        this.setAffineMatrix(parameters);
+        if (this.affineMatrix){
+            minCoordinates = affineTransform(minCoordinates, this.affineMatrix);
+            maxCoordinates = affineTransform(maxCoordinates, this.affineMatrix);
+        }
+
+        var feature = this.pointToBox(minCoordinates, maxCoordinates);
+        source.addFeature(feature);
+    }
+
+    generatePoint(i, prev_point){
+        throw "Cannot generate points with the ParcelGenerator";
+    }
+}
+
+/**
+ * Selects a generator to use based on parameters.
+ * Checks bounds of generator specific parameters.
+ * @param {object} parameters
+ * @returns {Generator} correct type of generator
+ */
+ function createGenerator(parameters) {
+    var generator = null;
+
+    if (parameters.distribution == "uniform"){
+        generator = new UniformGenerator(parameters.cardinality, parameters.dimensions);
+    }
+    else if (parameters.distribution == "diagonal"){
+        if (parameters.percentage < 0){
+            parameters.percentage = 0;
+        }
+        else if (parameters.percentage > 1){
+            parameters.percentage = 1;
+        }
+
+        if (parameters.buffer < 0){
+            parameters.buffer = 0;
+        }
+        else if (parameters.buffer > 1){
+            parameters.buffer = 1;
+        }
+
+        generator = new DiagonalGenerator(parameters.cardinality, parameters.dimensions, parameters.percentage, parameters.buffer);
+    }
+    else if (parameters.distribution == "gaussian"){
+        generator = new GaussianGenerator(parameters.cardinality, parameters.dimensions);
+    }
+    else if (parameters.distribution == "sierpinski"){
+        generator = new SierpinskiGenerator(parameters.cardinality, parameters.dimensions);
+    }
+    else if (parameters.distribution == "bit"){
+        if (parameters.probability < 0){
+            parameters.probability = 0;
+        }
+        else if (parameters.probability > 1){
+            parameters.probability = 1;
+        }
+
+        if (parameters.digits < 0){
+            parameters.digits = 0;
+        }
+
+        generator = new BitGenerator(parameters.cardinality, parameters.dimensions, parameters.probability, parameters.digits);
+    }
+    else if (parameters.distribution == "parcel"){
+        if (parameters.srange < 0){
+            parameters.srange = 0;
+        }
+        else if (parameters.srange > 0.5){
+            parameters.srange = 0.5;
+        }
+
+        if (parameters.dither < 0){
+            parameters.dither = 0;
+        }
+        else if (parameters.dither > 1){
+            parameters.dither = 1;
+        }
+
+        generator = new ParcelGenerator(parameters.cardinality, parameters.dimensions, parameters.srange, parameters.dither);
+    }
+
+    return generator;
 }

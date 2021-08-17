@@ -371,10 +371,10 @@ class ParcelGenerator(Generator):
     def dither_and_print(self, b):
         ditherx = b.w * uniform(0.0, self.dither)
         b.x += ditherx / 2
-        b.w -= ditherx / 2
+        b.w -= ditherx
         dithery = b.h * uniform(0.0, self.dither)
         b.y += dithery / 2
-        b.h -= dithery / 2
+        b.h -= dithery
 
         self.datasink.writeBox([b.x, b.y], [b.x + b.w, b.y + b.h])
         

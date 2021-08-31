@@ -480,6 +480,16 @@ function createDataset() {
     setLinksForLayer(dataLayer)
     // Visualize
     refreshLayerVisualization(dataLayer.mapLayer, dataLayer.parameters);
+    
+    //Openlayers translation interaction for Affine Transformation Visualization.
+    map.addInteraction(
+        new ol.interaction.Translate({
+            condition: function (event) {
+                return ol.events.condition.primaryAction(event);
+            },
+            layers: [dataLayer.mapLayer]
+        })
+    );
 }
 
 /**

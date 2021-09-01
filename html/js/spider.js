@@ -416,11 +416,10 @@ function createMapLayer(layer) {
         });
     }
 
-    var boundary = new ol.geom.LineString(coordinates);
-    var feature = new ol.Feature({geometry: boundary});
+    var borderBox = new ol.geom.LineString(coordinates);
+    var feature = new ol.Feature({geometry: borderBox});
+    borderBoxFeatures.push(feature); //push to array to store all BorderBoxFeatures used in ol.collection.
     source.addFeature(feature);
-
-    borderBoxFeatures.push(feature);
 
     //Openlayers collection used to group all border boxes and apply interactions only to the border boxes
     var collection = new ol.Collection(borderBoxFeatures);
@@ -446,6 +445,7 @@ function createMapLayer(layer) {
 }
 
 /**
+ * Performs Affine Transformation on a point given the affine Matrix (user input).
  * @param {float[2]} point 
  * @param {float[6]} matrix 
  */
@@ -453,6 +453,25 @@ function affineTransform(point, matrix) {
     var transformedx = point[0] * matrix[0] + point[1] * matrix[1] + 1 * matrix[2];
     var transformedy = point[0] * matrix[3] + point[1] * matrix[4] + 1 * matrix[5];
     return [transformedx, transformedy];
+}
+
+/**
+ * Performs backward Affine Transformation.
+ * Given coordinates of new BorderBox, finds values of affine matrix
+ * borderBoxCoordinates passed in as:  d---c
+ *                                     |   |
+ *                                     a---b
+ * @param {float[4][2]} borderBoxCoordinates
+ * @returns {float[6]} matrix as [AM1,1; AM1,2; AM1,3; AM2,1; AM2,2; AM2,3]
+ */
+function findAffineTransformedVals(borderBoxCoordinates){
+    var AM13 = borderBoxCoordinates[0][0];
+    var AM23 = borderBoxCoordinates[0][1];
+    var AM11 = borderBoxCoordinates[1][0] - AM13;
+    var AM21 = borderBoxCoordinates[1][1] - AM23;
+    var AM12 = borderBoxCoordinates[3][0] - AM13;
+    var AM22 = borderBoxCoordinates[3][1] - AM23;
+    return [AM11, AM12, AM13, AM21, AM22, AM23];
 }
 
 // ----------------- Dataset maintenance

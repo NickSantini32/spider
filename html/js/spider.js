@@ -12,6 +12,8 @@ var map;
 var zoomAllControl;
 // A flag to ensure that we change the map view to contain the first generated dataset
 var firstDataset = true;
+// List of border boxes used in affine transformation visualizations
+var borderBoxFeatures = [];
 
 // A map of which input fields to enable for each distribution
 var fEnableObj = {
@@ -415,7 +417,24 @@ function createMapLayer(layer) {
     }
 
     var boundary = new ol.geom.LineString(coordinates);
-    source.addFeature(new ol.Feature({geometry: boundary}));
+    var feature = new ol.Feature({geometry: boundary});
+    source.addFeature(feature);
+
+    borderBoxFeatures.push(feature);
+
+    //Openlayers collection used to group all border boxes and apply interactions only to the border boxes
+    var collection = new ol.Collection(borderBoxFeatures);
+
+    //Openlayers translation interaction for Affine Transformation Visualization.
+    map.addInteraction(
+        new ol.interaction.Translate({
+            condition: function (event) {
+                return ol.events.condition.primaryAction(event);
+            },
+            features: collection,
+            layers: [mapLayer]
+        })
+    );
 
     // Update the zoom all button based on all datasets including the newly generated dataset
     updateMapExtents();
@@ -480,16 +499,6 @@ function createDataset() {
     setLinksForLayer(dataLayer)
     // Visualize
     refreshLayerVisualization(dataLayer.mapLayer, dataLayer.parameters);
-    
-    //Openlayers translation interaction for Affine Transformation Visualization.
-    map.addInteraction(
-        new ol.interaction.Translate({
-            condition: function (event) {
-                return ol.events.condition.primaryAction(event);
-            },
-            layers: [dataLayer.mapLayer]
-        })
-    );
 }
 
 /**

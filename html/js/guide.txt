@@ -72,7 +72,7 @@ Helpful Resources:
 
 HAVE NOT been implemented at all yet.
 Similar to the Translate transformation once that is finished.
-*Rotate is built into openlayers when using Shift + drag. Might want to experiment with using that as the on-screen rotation interface.
+*Rotate is built into openlayers when using Shift + Alt + drag. Might want to experiment with using that as the on-screen rotation interface.
 
 
 - Notes

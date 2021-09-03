@@ -357,6 +357,7 @@ function createMapLayer(layer) {
 
 /**
  * Update the visualization on the screen to match the given parameters.
+ * Driver for Affine Transformation visualization
  * @param {MapLayer} mapLayer the layer on the map
  * @param {Object} parameters the parameters to use for the visualization 
  */
@@ -408,6 +409,7 @@ function createMapLayer(layer) {
         [0.0, 0.0]
     ];
 
+    //Checking for inputs in the affine matrix and adjusting the border box accordingly
     var affineMatrix = parameters.affinematrix;
     if (affineMatrix) {
         affineMatrix = parameters.affinematrix.split(",").map(function(c) {return parseFloat(c)});
@@ -430,7 +432,7 @@ function createMapLayer(layer) {
             condition: function (event) {
                 return ol.events.condition.primaryAction(event);
             },
-            features: collection,
+            features: collection, //only objects in the collection can be translated
             layers: [mapLayer]
         })
     );
@@ -462,7 +464,7 @@ function affineTransform(point, matrix) {
  *                                     |   |
  *                                     a---b
  * @param {float[4][2]} borderBoxCoordinates
- * @returns {float[6]} matrix as [AM1,1; AM1,2; AM1,3; AM2,1; AM2,2; AM2,3]
+ * @returns {float[6]} affine matrix as [AM1,1; AM1,2; AM1,3; AM2,1; AM2,2; AM2,3]
  */
 function findAffineTransformedVals(borderBoxCoordinates){
     var AM13 = borderBoxCoordinates[0][0];

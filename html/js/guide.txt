@@ -70,6 +70,13 @@ Helpful Resources:
 
 - Rotate, Scale, Shear Transformation
 
-HAVE NOT been implemented yet.
+HAVE NOT been implemented at all yet.
 Similar to the Translate transformation once that is finished.
 *Rotate is built into openlayers when using Shift + drag. Might want to experiment with using that as the on-screen rotation interface.
+
+
+- Notes
+
+For help integrating into Openlayers: https://openlayers.org/en/latest/apidoc/
+Spider uses a cached version of Openlayers in ol.js so using ol features is formatted a bit different (see lines 339-356 as an example).
+One option, if necessary, is to add a layer on the map which only visualizes the border Box. The Data is on another layer. They are currently on the same layer.

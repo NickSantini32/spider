@@ -114,7 +114,7 @@ function createSparkCode(parameters) {
     // Update the generation code
     var code = "import edu.ucr.cs.bdlab.beast._\n"
     code += "import edu.ucr.cs.bdlab.beast.generator._\n"
-    code += "val generatedData: SpatialRDD = sparkContext.generateSpatialData(";
+    code += "val generatedData: SpatialRDD = sc.generateSpatialData\n";
     const SparkDistributionNames = {
         "uniform": "UniformDistribution",
         "diagonal": "DiagonalDistribution",
@@ -123,43 +123,39 @@ function createSparkCode(parameters) {
         "bit": "BitDistribution",
         "sierpinski": "SierpinskiDistribution"
     }
-    code += SparkDistributionNames[parameters.distribution]
-    code += ", "
-    code += parameters.cardinality + ", \n"
-    code += "  opts = Seq("
+    code += "  .distribution("+SparkDistributionNames[parameters.distribution]+")\n"
     const ParameterNames = {
         "dimensions": "SpatialGenerator.Dimensions",
         "seed": "SpatialGenerator.Seed",
         "affinematrix": "SpatialGenerator.AffineMatrix",
-        "geometry": "PointBasedGenerator.GeometryType",
-        "maxsize": "PointBasedGenerator.MaxSize",
-        "percentage": "DiagonalGenerator.Percentage",
-        "buffer": "DiagonalGenerator.Buffer",
-        "digits": "BitGenerator.Digits",
-        "probability": "BitGenerator.Probability",
-        "dither": "ParcelGenerator.Dither",
-        "srange": "ParcelGenerator.SplitRange"
+        "geometry": "UniformDistribution.GeometryType",
+        "maxsize": "UniformDistribution.MaxSize",
+        "percentage": "DiagonalDistribution.Percentage",
+        "buffer": "DiagonalDistribution.Buffer",
+        "digits": "BitDistribution.Digits",
+        "probability": "BitDistribution.Probability",
+        "dither": "ParcelDistribution.Dither",
+        "srange": "ParcelDistribution.SplitRange"
     }
     for (key in parameters) {
         if (ParameterNames[key]) {
           var value = parameters[key];
           if (value) {
             if (key === "affinematrix") {
-              // Adjust the affine matrix to match the Scala implememntation
+              // Adjust the affine matrix to match the Scala implementation
               // Matrix transpose
               value = [value[0], value[3], value[1], value[4], value[2], value[5]]
             }
             let numericRegex = /^[\d.-]+$/
             if (numericRegex.exec(value.toString()))
-              code += `${ParameterNames[key]} -> ${value}, `
+              code += `  .config(${ParameterNames[key]}, ${value})\n`
             else
-              code += `${ParameterNames[key]} -> "${value}", `
+              code += `  .config(${ParameterNames[key]}, "${value}")\n`
           }
         }
     }
     // Remove the last comma
-    code = code.substring(0, code.length - 2)
-    code += "))"
+    code += `  .generate(cardinality=${parameters.cardinality})`
     return code;
 }
 

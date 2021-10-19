@@ -11,7 +11,7 @@ var map;
 // The control that zooms to all dataset on the visualization component
 var zoomAllControl;
 // A flag to ensure that we change the map view to contain the first generated dataset
-var firstDataset = true;
+var firstDataset = true;     
 
 // A map of which input fields to enable for each distribution
 var fEnableObj = {

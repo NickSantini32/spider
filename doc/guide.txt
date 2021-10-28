@@ -13,7 +13,7 @@ Openlayers library used for visualizations - https://openlayers.org/
 For affine transformations, you don't need to worry about the data. Only dealing with the Border box.
 The visualization for this is implemented in refreshLayerVisualization() at lines 419-421.
 The actual function that implements the affine Transformation on a given input is affineTransform() on line 452.
-Each time refreshLayerVisualization() is called, the program check for this input matrix and performs transformation if necessary on lines 411-417.
+Each time refreshLayerVisualization() is called, the program checks for this input matrix and performs transformation if necessary on lines 411-417.
 
 
 - Affine Transformation Draggable Visualization

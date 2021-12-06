@@ -16,7 +16,7 @@
  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 
  <!-- seeded random generator -->
- <script src="//cdnjs.cloudflare.com/ajax/libs/seedrandom/3.0.5/seedrandom.min.js"></script>
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/seedrandom/3.0.5/seedrandom.min.js"></script>
 
  <!-- open layers -->
  <script src="js/ol.js"></script>
@@ -143,16 +143,26 @@
         <option value="polygon" id="geometry-polygon">Polygon</option>
        </select>
       </label>
-      <!-- Max width -->
+      <!-- Max width for box -->
       <label class="inputfield maxsize small">
        <span class="tooltip" title="Maximum width of a box [0.0, 1.0]">Width</span>
-       <input type="number" name="maxsize0" value="0.01"/>
+       <input type="number" name="maxsize0" value="0.01" step = "0.01"/>
       </label>
-      <!-- Max height-->
+      <!-- Max height for box-->
       <label class="inputfield maxsize small">
        <span class="tooltip" title="Maximum height of a box [0.0, 1.0]">Height</span>
-       <input type="number" name="maxsize1" value="0.01"/>
+       <input type="number" name="maxsize1" value="0.01" step = "0.01"/>
       </label>
+        <!-- Max size for polygon -->
+      <label class="inputfield polysize small">
+       <span class="tooltip" title="Maximum size of a polygon [0.0, 0.01]">Size</span>
+       <input type="number" name="polysize" value="0.01" step = "0.01"/> 
+      </label>
+      <!-- Max line segments for polygon-->
+      <label class="inputfield maxseg small">
+       <span class="tooltip" title="Maximum line segments of a polygon [3.0, 12.0]">Line Seg</span>
+       <input type="number" name="maxseg" value="3" step = "1"/>
+      </label>  
       <!-- Download format -->
       <label class="inputfield small">
        <span class="tooltip" title="Output format of data">Format</span>

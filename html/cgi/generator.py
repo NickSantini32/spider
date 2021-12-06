@@ -34,7 +34,7 @@ class DataSink(ABC):
     @abstractmethod
     def writeBox(self, coordinates):
         pass
-
+#add one for polygon
     @abstractmethod
     def flush(self):
         pass
@@ -52,7 +52,7 @@ class CSVSink(DataSink):
         self.output.write(",")
         self.output.write(",".join([str(elem) for elem in maxCoordinates]))
         self.output.write("\n")
-    
+    #add one for polygon
     def flush(self):
         self.output.flush()
 

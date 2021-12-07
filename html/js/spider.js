@@ -861,11 +861,6 @@ class DataGenerator extends Generator{
         while (i < this.cardinality){
             var newpoint = this.generatePoint(i, prevpoint);
             if (this.isValidPoint(newpoint)) {
-                //move->down
-                /*if (this.affineMatrix){
-                    newpoint = affineTransform(newpoint, this.affineMatrix);
-                }
-                */
                 var feature;
                 if (parameters.geometry == "point") {
                     if (this.affineMatrix) {
@@ -881,7 +876,6 @@ class DataGenerator extends Generator{
                         let size = uniform(0, maxsize[d]);
                         minCoordinates.push(newpoint[d] - size);
                         maxCoordinates.push(newpoint[d] + size);
-                        //   console.log("min and max coordinates array: ", MinandMaxCord);
 
 
                     }
@@ -894,21 +888,13 @@ class DataGenerator extends Generator{
                     }
                     feature = this.pointToBox(minCoordinates, maxCoordinates);
                 } else if (parameters.geometry == "polygon") {
-                    //need max size and line segments
-                    //generate random num from 0 and max size
-                    //generate random num between 3 and line segments
-                    //hideInputs() to get html inputs to show
-                    //hit f12 for console => console.log();
-
                     if (parameters.dimensions != 2) {
                         console.log("error: expected 2 dimensions, got", parameters.dimensions);
                     }
 
                     var center = this.generatePoint();
                     console.log(parameters);
-                    console.log("maxseg: ", parameters.maxseg);
                     var minSegs = 3;
-                    console.log("parameters.maxseg: ", parameters.maxseg);
                     //generates a random num between user inputted max and const minSeg-> then add minSegs back
                     var numSegments;
                     if (parameters.maxseg == 0) {
@@ -919,29 +905,20 @@ class DataGenerator extends Generator{
                     
                     var angles = [];
                     //fills array with random angles
-                    //for (var increment = 0; increment < numSegments+1; ++increment) {
                     for (var increment = 0; increment < numSegments; ++increment) {
                         angles.push(uniform(0, Math.PI * 2));
                     }
 
-                    console.log("numsegments: ", numSegments);
-                    console.log("angles length ", angles.length);
-
-                    console.log("angles: ", angles);
-                    //should have a random array of angles
+                    //a random array of angles
                     angles = angles.sort();
-                    console.log("sorted angles: ", angles);
 
                     //creates a new array that will be filled with the x and y coordinates so that it can generate a point
                     var points = angles.map(angle => {
                         var distance = uniform(0, parameters.polysize)
-                        //console.log("distance: ", distance);
-                        //center[0], center[1]?
-                        //console.log("centeR: ", center);
+
                         var x = center[0] + parameters.polysize * Math.cos(angle);
                         var y = center[1] + parameters.polysize * Math.sin(angle);
                         //returns the x and y array
-                        //put affine matrix thing here reuturn it
                         if (this.affineMatrix) {
                             return points = affineTransform([x, y], this.affineMatrix);
                         } else {
@@ -951,9 +928,7 @@ class DataGenerator extends Generator{
 
                     //adds the last point to connect the line segments of the polygon
                     points.push(points[0]);
-                    console.log("points array: ", points);
                     //draws the polygon
-                    //TODO: apply affine transformation to all the points
                     feature = new ol.Feature({ geometry: new ol.geom.LineString(points) });
 
 

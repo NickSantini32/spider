@@ -6,6 +6,8 @@ var generatorPath;
 var colorNames = ["blue", "red", "green", "orange", "black", "purple", "gray", "brown"];
 // A list of layers that are currently added by the user
 var dataLayers = [];
+// Datalayer for the dashed bounding box
+var boundingBox = {};
 // The map of OpenLayers that contains all the visualizations
 var map;
 // The control that zooms to all dataset on the visualization component
@@ -53,6 +55,8 @@ jQuery(function() {
     // If parameters are provided through permalink, use them to populate the on-screen form
     populateFormFromURL();
     validateForm();
+    //creates dashed bounding box
+    createBoundingBox();
     // Create first layer based on the data on the screen
     createDataset();
     // Enable/disable inputs at initialization
@@ -75,7 +79,7 @@ function showHideAffineTransformation() {
 
 /**
  * Overrides the form submission action and handles it via JavaScript.
- * @param {event} event 
+ * @param {event} event
  */
 function formSubmit(event) {
     event.preventDefault();
@@ -93,7 +97,7 @@ function setLinksForLayer(layer) {
     // Update the permalink
     jQuery(".permalink").text(createPermalink(layer.parameters));
     jQuery(".spark-code").text(createSparkCode(layer.parameters));
-    jQuery(".python-code").text(createPythonCode(layer.parameters));    
+    jQuery(".python-code").text(createPythonCode(layer.parameters));
 }
 
 function createPythonCode(parameters) {
@@ -180,6 +184,8 @@ function activeLayerChanged() {
     jQuery(".permalink").text(createPermalink(activeLayer.parameters));
     jQuery(".spark-code").text(createSparkCode(activeLayer.parameters));
     jQuery(".python-code").text(createPythonCode(activeLayer.parameters));
+    // update the bounding box
+    updateBoundingBox();
 }
 
 function highlightActiveLayer() {
@@ -282,8 +288,10 @@ function populateFormFromURL() {
         if (params[i]) {
             // Parse affineMatrix
             var affineMatrixParts = params[i].split(",")
-            for (var j = 1; j <= 6; j++)
+            for (var j = 1; j <= 6; j++){
+                console.log(affineMatrixParts[j-1]);
                 jQuery(`input[name=a${j}]`).val(affineMatrixParts[j-1])
+            }
         }
     }
     // Update the visible options based on the distribution selection
@@ -332,7 +340,7 @@ function chooseAvailableColor() {
 
 /**
  * Create a layer to add in the map for visualizing the given layer object.
- * @param {layer} layer 
+ * @param {layer} layer
  */
 function createMapLayer(layer) {
     // Create a corresponding layer in the map
@@ -344,7 +352,7 @@ function createMapLayer(layer) {
         stroke: new ol.style.Stroke({
             color: layer['color'],
             width: 1
-        }), 
+        })
       });
     var mapLayer = new ol.layer.Vector({
         style: function() { return style; },
@@ -355,15 +363,21 @@ function createMapLayer(layer) {
 
 /**
  * Update the visualization on the screen to match the given parameters.
- * @param {MapLayer} mapLayer the layer on the map
- * @param {Object} parameters the parameters to use for the visualization 
+ * Driver for Affine Transformation visualization
+ * @param {dataLayer} dataLayer object which cotains:
+ * the layer on the map (mapLayer) and
+ * the parameters to use for the visualization (parameters)
  */
- function refreshLayerVisualization(mapLayer, parameters) {
+ function refreshLayerVisualization(dataLayer) {
+    var mapLayer = dataLayer.mapLayer;
+    var parameters = dataLayer.parameters;
+    dataLayer.borderBoxFeatures = [];
+    var borderBoxFeatures = dataLayer.borderBoxFeatures;
 
     //Window dimensions for customized cardinality upper limits
     var windowWidth = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
     var windowHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-    
+
     var cardinalityLimit = 10000; // Cardinality limit defaults to 10,000
     if (windowHeight < 775 || windowWidth < 950){ // Smaller screen have cardinality capped at 1000
         cardinalityLimit = 1000;
@@ -406,6 +420,7 @@ function createMapLayer(layer) {
         [0.0, 0.0]
     ];
 
+    //Checking for inputs in the affine matrix and adjusting the border box accordingly
     var affineMatrix = parameters.affinematrix;
     if (affineMatrix) {
         affineMatrix = parameters.affinematrix.split(",").map(function(c) {return parseFloat(c)});
@@ -413,12 +428,20 @@ function createMapLayer(layer) {
             return affineTransform(coord, affineMatrix);
         });
     }
+    parameters.affinematrix = affineMatrix;
 
-    var boundary = new ol.geom.LineString(coordinates);
-    source.addFeature(new ol.Feature({geometry: boundary}));
+    //creates border box
+    var borderBox = new ol.geom.LineString(coordinates);
+    dataLayer.borderBox = borderBox;
+    var borderFeat = new ol.Feature({geometry: borderBox});
+
+    borderBoxFeatures.push(borderFeat);
+    source.addFeature(borderFeat);
 
     // Update the zoom all button based on all datasets including the newly generated dataset
     updateMapExtents();
+    //update the dashed bounding box to fit data
+    updateBoundingBox();
 
     if (firstDataset) {
         map.getView().fit(zoomAllControl.extent);
@@ -427,13 +450,37 @@ function createMapLayer(layer) {
 }
 
 /**
- * @param {float[2]} point 
- * @param {float[6]} matrix 
+ * Performs Affine Transformation on a point given the affine Matrix (user input).
+ * @param {float[2]} point
+ * @param {float[6]} matrix
  */
 function affineTransform(point, matrix) {
     var transformedx = point[0] * matrix[0] + point[1] * matrix[1] + 1 * matrix[2];
     var transformedy = point[0] * matrix[3] + point[1] * matrix[4] + 1 * matrix[5];
     return [transformedx, transformedy];
+}
+/**
+ * Performs backward Affine Transformation.
+ * Given coordinates of new BorderBox, finds values of affine matrix
+ * Rounds matrix values to 3 decimal places
+ * borderBoxCoordinates passed in as:  d---c
+ *                                     |   |
+ *                                     a---b
+ * @param {float[4][2]} borderBoxCoordinates
+ * @returns {float[6]} affine matrix as AM1,1; AM1,2; AM1,3; AM2,1; AM2,2; AM2,3
+ */
+function findAffineTransformedVals(borderBoxCoordinates){
+    var AM13 = borderBoxCoordinates[0]; // x coord of a
+    var AM23 = borderBoxCoordinates[1]; // y coord of a
+    var AM11 = borderBoxCoordinates[2] - AM13; // x coord of b - AM13
+    var AM21 = borderBoxCoordinates[3] - AM23; // y coord of b - AM21
+    var AM12 = borderBoxCoordinates[6] - AM13; // x coord of d - AM13
+    var AM22 = borderBoxCoordinates[7] - AM23; // y coord of d - AM23
+    var arr = [AM11, AM12, AM13, AM21, AM22, AM23];
+    arr.forEach(function(val, i){
+      arr[i] = Math.round(val * 1000) / 1000;
+    });
+    return arr;
 }
 
 // ----------------- Dataset maintenance
@@ -452,7 +499,18 @@ function isEmpty(object) {
 function createDataset() {
     // Extract form values into an object and store it in memory
     var dataLayer = {};
+
     dataLayer.parameters = formToJSON();
+    //sets the default affine values in the form if none are provided by links
+    if (!dataLayer.parameters.affinematrix){
+      jQuery("input[name=a1]").val(1);
+      for (var i = 2; i <= 6; i++){
+          jQuery("input[name=a"+ i +"]").val(0);
+      }
+      jQuery("input[name=a5]").val(1);
+    }
+
+    dataLayer.borderBoxFeatures = [];
     dataLayer.color = chooseAvailableColor();
     dataLayer.mapLayer = createMapLayer(dataLayer);
     if (dataLayers.length == 0)
@@ -479,7 +537,7 @@ function createDataset() {
     // Update the links
     setLinksForLayer(dataLayer)
     // Visualize
-    refreshLayerVisualization(dataLayer.mapLayer, dataLayer.parameters);
+    refreshLayerVisualization(dataLayer);
 }
 
 /**
@@ -495,12 +553,12 @@ function saveLayerChanges() {
     // Update the permalink and Python generation code
     setLinksForLayer(activeDataset);
     // Update the visualization
-    refreshLayerVisualization(activeDataset.mapLayer, activeDataset.parameters);
+    refreshLayerVisualization(activeDataset);
 }
 
 /**
  * Update the name of the dataset on the list of layers to reflect its distribution and format
- * @param {Dataset} dataset 
+ * @param {Dataset} dataset
  */
 function updateDatasetName(dataset) {
     jQuery(`input[type=radio][value=${dataset.id}]`)
@@ -542,7 +600,7 @@ function getActiveDatasetId() {
 
 /**
  * Event handler for the delete button.
- * @param {*} event 
+ * @param {*} event
  */
 function deleteDataset(e) {
     var datasetRadio = jQuery(this).parents("li").find("input[type=radio]");
@@ -656,11 +714,11 @@ function hideInputs() {
 function formToJSON() {
     var distribution = jQuery("#distribution").val();
     var parameters = {};
-    jQuery("#data-form").serializeArray().forEach(function(kv){ 
+    jQuery("#data-form").serializeArray().forEach(function(kv){
             var parameterName = kv['name'];
             var parameterValue = kv['value'];
             if (!fEnableObj[parameterName] || fEnableObj[parameterName] === distribution)
-                parameters[parameterName] = parameterValue; 
+                parameters[parameterName] = parameterValue;
         });
     // Convert the affineMatrix to an easier form to use
     var affineMatrix = [];
@@ -672,7 +730,7 @@ function formToJSON() {
     // All parameters have to be defined to use the affine matrix
     if (affineMatrix.length == 6)
         parameters["affinematrix"] = affineMatrix;
-    
+
     if (distribution != "parcel" && parameters.geometry === "box") {
         // Need to parse the max size
         parameters.maxsize = [parseFloat(parameters.maxsize0), parseFloat(parameters.maxsize1)]
@@ -684,7 +742,7 @@ function formToJSON() {
 
 /**
  * Convert the given JSON object that contains parameters to the form.
- * @param {object} paramVals 
+ * @param {object} paramVals
  */
 function JSONToForm(paramVals) {
     if (!paramVals.affinematrix) {
@@ -695,7 +753,7 @@ function JSONToForm(paramVals) {
     for (var key in paramVals) {
         if (key === "affinematrix") {
             var affineMatrix = paramVals[key];
-            for (var i = 1; i <= 6; i++) 
+            for (var i = 1; i <= 6; i++)
                 jQuery(`input[name=a${i}]`).val(affineMatrix[i - 1]);
         } else if (key === "maxsize") {
             var maxsize = paramVals[key];
@@ -800,7 +858,7 @@ class Generator{
      * @param {object} maxCoordinates
      * @returns {feature} openlayers feature
      */
-    pointToBox(minCoordinates, maxCoordinates){ 
+    pointToBox(minCoordinates, maxCoordinates){
         var coordinates = [];
         for (let i = 0; i < minCoordinates.length; i++){
             coordinates.push(minCoordinates[i]);
@@ -821,7 +879,7 @@ class Generator{
 }
 
 /**
- * Base class for all uniform, diagonal, guassian, sierpinski, and bit generators. 
+ * Base class for all uniform, diagonal, guassian, sierpinski, and bit generators.
  * @constructor
  * @extends Generator
  */
@@ -834,7 +892,7 @@ class DataGenerator extends Generator{
     constructor(cardinality, dimensions){
         super(cardinality, dimensions);
     }
-    
+
     //abstract
     generatePoint(i, prevpoint){
         throw "Using abstract function";
@@ -961,7 +1019,7 @@ class DiagonalGenerator extends DataGenerator {
  * @extends DataGenerator
  */
 class GaussianGenerator extends DataGenerator {
-    
+
     /**
      * @param {int} cardinality
      * @param {int} dimensions
@@ -1136,14 +1194,14 @@ class ParcelGenerator extends Generator{
      */
     generate(source, parameters){
         // Using dataclass to create BoxWithDepth, which stores depth of each box in the tree
-        // Depth is used to determine at which level to stop splitting and start printing    
+        // Depth is used to determine at which level to stop splitting and start printing
         let box = new BoxWithDepth(0, 0.0, 0.0, 1.0, 1.0);
         var boxes = [];
         boxes.push(box);
 
         var max_height = Math.ceil(Math.log2(this.cardinality));
 
-        // We will print some boxes at last level and the remaining at the second to last level 
+        // We will print some boxes at last level and the remaining at the second to last level
         // Number of boxes to split on the second to last level
         var numToSplit = this.cardinality - Math.pow(2, Math.max(max_height - 1, 0));
         var numSplit = 0;
@@ -1161,7 +1219,7 @@ class ParcelGenerator extends Generator{
                     this.ditherAndPrint(splitBoxes[1], source, parameters);
                     boxes_generated += 2;
                 }
-                else { //Print remaining boxes from the second to last level 
+                else { //Print remaining boxes from the second to last level
                     this.ditherAndPrint(b, source, parameters);
                     boxes_generated += 1;
                 }

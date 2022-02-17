@@ -1,0 +1,82 @@
+- Overview of Spider
+
+Spider generates Spatial Datasets using many different distrbutions.
+Everything after line 732 is related to the generation of data into points.
+Points are converted to boxes if necessary using pointToBox() on line 822.
+Visualization implemented in Generator.generate() using source.addFeature().
+Parcel distribution visualization implemented in ParcelGenerator.ditherAndPrint().
+Openlayers library used for visualizations - https://openlayers.org/
+
+
+- Affine Transformations Overview
+
+For affine transformations, you don't need to worry about the data. Only dealing with the Border box.
+The visualization for this is implemented in refreshLayerVisualization() at lines 419-421.
+The actual function that implements the affine Transformation on a given input is affineTransform() on line 452.
+Each time refreshLayerVisualization() is called, the program checks for this input matrix and performs transformation if necessary on lines 411-417.
+
+
+- Affine Transformation Draggable Visualization
+
+The Border Box is the only part that moves. 
+BorderBoxFeatures stores openlayers "features" of the BorderBox. (line 16)
+When the box is manipulated, program performs matrix operations (details below) and updates the input numbers.
+Program uses the new coordinates of the Border box with original coordinates: [(0,0), (0, 1), (1,0), (1,1)].
+*Must implement Translation, Rotation, Scaling, Shearing.
+*Implementation must work with multiple datasets.
+*Must update values in the on-screen affine Matrix. Be careful with a possible never-ending loop.
+Baseline (modify not used and some features missing) - https://openlayers.org/en/latest/examples/modify-scale-and-rotate.html
+
+
+- Affine Matrix Operations
+
+These operations are already implemented in findAffineTransformedVals() on line 467.
+The input values are the points of the borderBox that has been manipulated by the user. Returns new affine matrix.
+This function is used to update on-screen affine Matrix values after every affine transformation via the user interface.
+
+For any point "a": (primes are the new coordinates and AM's are affine matrix values)
+    [               [                                 [
+        Xa'            AM1,1   AM1,2   AM1,3              0
+        Ya'     =      AM2,1   AM2,2   AM2,3     *        0
+        1                0      0      1                  1
+            ]                               ]                 ]
+
+Therefore:
+    Xa' = AM1,3
+    Ya' = AM2,3
+    Xb' = AM1,1 + AM1,3
+    Yb' = AM2,1 + AM2,3
+    Xd' = AM1,2 + AM1,3
+    Yd' = AM2,2 + AM2,3
+
+Helpful Resources:
+    1. https://www.cs.utexas.edu/users/fussell/courses/cs384g-fall2011/lectures/lecture07-Affine.pdf
+    2. https://www.mathworks.com/discovery/affine-transformation.html
+
+
+- Translate Transformation
+
+Adds Translate interaction to map on line 428.
+Uses the generated Collection() in line 425 so that only the borderBox is able to be clicked by the user.
+
+*PROBLEMS TO FIX: Does not work cleanly when multiple datasets are added.
+*STILL TO DO: Get coordinates of the corners of borderBox and visualize them in on-screen affine matrix.
+
+Helpful Resources:
+    1. https://openlayers.org/en/latest/apidoc/module-ol_interaction_Translate-Translate.html
+    2. https://openlayers.org/en/latest/apidoc/module-ol_Collection-Collection.html
+    3. https://openlayers.org/en/latest/apidoc/module-ol_events_condition.html
+
+
+- Rotate, Scale, Shear Transformation
+
+HAVE NOT been implemented at all yet.
+Similar to the Translate transformation once that is finished.
+*Rotate is built into openlayers when using Shift + Alt + drag. Might want to experiment with using that as the on-screen rotation interface.
+
+
+- Notes
+
+For help integrating into Openlayers: https://openlayers.org/en/latest/apidoc/
+Spider uses a cached version of Openlayers in ol.js so using ol features is formatted a bit different (see lines 339-356 as an example).
+One option, if necessary, is to add a layer on the map which only visualizes the border Box. The Data is on another layer. They are currently on the same layer.

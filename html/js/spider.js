@@ -130,6 +130,8 @@ function createSparkCode(parameters) {
         "affinematrix": "SpatialGenerator.AffineMatrix",
         "geometry": "UniformDistribution.GeometryType",
         "maxsize": "UniformDistribution.MaxSize",
+        "maxseg": "UniformDistribution.MaxSeg",
+        "polysize": "UniformDistribution.PolySize",
         "percentage": "DiagonalDistribution.Percentage",
         "buffer": "DiagonalDistribution.Buffer",
         "digits": "BitDistribution.Digits",
@@ -193,8 +195,12 @@ function createDownloadLink(parameters) {
     parameters.compress = "bz2";
     if (parameters.affinematrix)
         parameters.affinematrix = parameters.affinematrix.join(",")
-    if (parameters.maxsize)
-        parameters.maxsize = parameters.maxsize.join(",")
+        
+        if (parameters.geometry === "box") {
+            if (parameters.maxsize)
+                parameters.maxsize = parameters.maxsize.join(",") 
+        }
+        
     if (!parameters.seed)
         parameters.seed = new Date().getTime()
     rng = new Math.seedrandom(parameters.seed);
@@ -217,8 +223,18 @@ function createPermalink(parameters) {
     parts.push(parameters.seed)
     if (parameters.distribution != "parcel")
         parts.push(parameters.geometry)
-    if (parameters.maxsize)
-        parts.push(parameters.maxsize.join(","))
+    if (parameters.geometry === "box") {
+        if (parameters.maxsize)
+            parts.push(parameters.maxsize.join(","))  
+    }
+    
+    if (parameters.geometry === "polygon") {
+        if (parameters.polysize)
+            parts.push(parameters.polysize)
+       if (parameters.maxseg)
+            parts.push(parameters.maxseg) 
+    }
+    
     for (inputName in fEnableObj) {
         if (fEnableObj[inputName] === parameters.distribution)
             parts.push(parameters[inputName])
@@ -261,14 +277,21 @@ function populateFormFromURL() {
         var geometry;
         if (distributionLongName != "parcel")
             geometry = params[i++];
-        else
+        else if (distributionLongName === "box")
             geometry = "box";
+        else if (distributionLongName === "polygon")
+            geometry = "polygon"
         jQuery("#geometry").val(geometry);
         // Parse the maxsize
         if (distributionLongName != "parcel" && geometry === "box") {
             var maxSizeParts = params[i++].split(",")
             jQuery("input[name='maxsize0']").val(maxSizeParts[0])
             jQuery("input[name='maxsize1']").val(maxSizeParts[1])
+        }
+        if (distributionLongName != "parcel" && geometry === "polygon") {
+            var polyParts = params[i++].split(",")
+            jQuery("input[name='polysize']").val(polyParts[0])
+            jQuery("input[name='maxseg']").val(polyParts[1])
         }
         // Parse distribution specific parameters
         for (inputName in fEnableObj) {
@@ -380,6 +403,13 @@ function createMapLayer(layer) {
     }
     if (parameters.maxsize){
         parameters.maxsize = parameters.maxsize.join(",");
+    }
+    //ADDED FOR POLYGON
+    if(parameters.polysize){
+        parameters.polysize = parameters.polysize;
+    }
+    if(parameters.maxseg){
+        parameters.maxseg = parameters.maxseg;
     }
     if (!parameters.seed){
         parameters.seed = new Date().getTime();
@@ -598,6 +628,12 @@ function validateForm() {
         zeroToOne.push("maxheight")
         formValues.maxwidth = formValues.maxsize[0]
         formValues.maxheight = formValues.maxsize[1]
+    }
+    if (formValues.distribution != "parcel" && formValues.geometry === "polygon") {
+        positiveInteger.push("maxseg")
+        zeroToOne.push("polysize")
+        formValues.maxseg = formValues.maxseg[0]
+        formValues.polysize = formValues.polysize[1]
     }
     positiveInteger.forEach(function(key) {
         if (formValues[key]) {
@@ -848,6 +884,17 @@ class DataGenerator extends Generator{
         throw "Using abstract function";
     }
 
+    transform(angle) {
+        var distance = uniform(0, parameters.polysize)
+        var x = center[0] + parameters.polysize * Math.cos(angle);
+        var y = center[1] + parameters.polysize * Math.sin(angle);
+        //returns the x and y array
+        if (this.affineMatrix) {
+            return points = affineTransform([x, y], this.affineMatrix);
+        } else {
+            return [x, y]
+        }
+    }
     /**
      * Generates data and displays it on to the screen.
      * @param {object} source
@@ -897,7 +944,7 @@ class DataGenerator extends Generator{
                     var minSegs = 3;
                     //generates a random num between user inputted max and const minSeg-> then add minSegs back
                     var numSegments;
-                    if (parameters.maxseg == 0) {
+                    if (parameters.maxseg <= 3) {
                         numSegments = minSegs;
                     } else {
                         numSegments = dice(parameters.maxseg - minSegs) + minSegs;

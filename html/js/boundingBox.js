@@ -31,11 +31,12 @@ function createBoundingBox() {
   boundingBox.geometry = new ol.geom.LineString(coordinates);
   boundingBox.boundingFeat = new ol.Feature({geometry: boundingBox.geometry});
   boundingFeat = boundingBox.boundingFeat;
-  boundingFeat.setStyle(
+  var boundingStroke = new ol.style.Stroke({color: "rgba(0, 255, 255, 1)", width: 1, lineDash: [20, 20]});
+  boundingFeat.setStyle([
     new ol.style.Style({
-      stroke : new ol.style.Stroke({color: "rgba(0, 255, 255, 1)", width: 1, lineDash: [20, 20]})
+      stroke : boundingStroke
     })
-  );
+  ]);
   source.addFeature(boundingFeat);
 
   //adds translation interaction and listeners to bounding box
@@ -59,7 +60,11 @@ function createBoundingBox() {
   boxTranslateEvent.on("translating", function() {
       moved = true;
       var bboxGeom = boundingBox.geometry.flatCoordinates;
-      var layerBox = dataLayers[boundingBox.activeLayerID - 1].borderBoxFeatures[0];
+      var layerBox;
+      dataLayers.forEach((item) => {
+        if (item.id == boundingBox.activeLayerID)
+          layerBox = item.borderBoxFeatures[0];
+      });
 
       layerBox.getGeometry().translate(bboxGeom[0] - tempBoxVal[0], bboxGeom[1] - tempBoxVal[1]);
       tempBoxVal = [...boundingBox.geometry.flatCoordinates];
@@ -74,8 +79,14 @@ function createBoundingBox() {
         return;
       }
 
-      var parameters = dataLayers[boundingBox.activeLayerID - 1].parameters;
-      var layerBox = dataLayers[boundingBox.activeLayerID - 1].borderBoxFeatures[0].getGeometry().flatCoordinates;
+      var parameters;
+      var layerBox;
+      dataLayers.forEach((item) => {
+        if (item.id == boundingBox.activeLayerID){
+          layerBox = item.borderBoxFeatures[0].getGeometry().flatCoordinates;
+          parameters = item.parameters;
+        }
+      });
       parameters.affinematrix = findAffineTransformedVals(layerBox);
 
       //updates form
@@ -125,8 +136,14 @@ function createBoundingBox() {
         return;
       }
 
-      var parameters = dataLayers[boundingBox.activeLayerID - 1].parameters;
-      var layerBox = dataLayers[boundingBox.activeLayerID - 1].borderBoxFeatures[0].getGeometry().flatCoordinates;
+      var parameters;
+      var layerBox;
+      dataLayers.forEach((item) => {
+        if (item.id == boundingBox.activeLayerID){
+          layerBox = item.borderBoxFeatures[0].getGeometry().flatCoordinates;
+          parameters = item.parameters;
+        }
+      });
       parameters.affinematrix = findAffineTransformedVals(layerBox);
 
       //updates form
@@ -198,8 +215,12 @@ function createBoundingBox() {
       edgeTranlateEvents[i].addEventListener("moving", function(evt) {
         var index = evt.features.getArray()[0].get("pointIndex");
         var bboxCoords = boundingBox.geometry.flatCoordinates;
-        //var parameters = dataLayers[boundingBox.activeLayerID - 1].parameters;
-        var layerBox = dataLayers[boundingBox.activeLayerID - 1].borderBoxFeatures[0].getGeometry();
+        var layerBox;
+        dataLayers.forEach((item) => {
+          if (item.id == boundingBox.activeLayerID){
+            layerBox = item.borderBoxFeatures[0].getGeometry();
+          }
+        });
         var deltax = evt.newCoord[0] - evt.oldCoord[0];
         var deltay = evt.newCoord[1] - evt.oldCoord[1];
 
@@ -263,8 +284,12 @@ function createBoundingBox() {
            layerBox.flatCoordinates[i+1] = point[1];
          }
 
-          dataLayers[boundingBox.activeLayerID - 1].mapLayer.getSource().changed();
-          updateBoundingBox();
+         dataLayers.forEach((item) => {
+           if (item.id == boundingBox.activeLayerID){
+             layerBox = item.mapLayer.getSource().changed();
+           }
+         });
+         updateBoundingBox();
 
         }
         //update corner and edge points
@@ -274,8 +299,14 @@ function createBoundingBox() {
 
       //update affine matrix when translation is finished
       edgeTranlateEvents[i].addEventListener("moveend", function() {
-        var parameters = dataLayers[boundingBox.activeLayerID - 1].parameters;
-        var layerBox = dataLayers[boundingBox.activeLayerID - 1].borderBoxFeatures[0].getGeometry().flatCoordinates;
+        var parameters;
+        var layerBox;
+        dataLayers.forEach((item) => {
+          if (item.id == boundingBox.activeLayerID){
+            layerBox = item.borderBoxFeatures[0].getGeometry().flatCoordinates;
+            parameters = item.parameters;
+          }
+        });
         parameters.affinematrix = findAffineTransformedVals(layerBox);
 
         //updates form
@@ -332,7 +363,13 @@ function createBoundingBox() {
           boundingBox.geometry.setCoordinates([[minx, miny], [maxx, miny], [maxx, maxy], [minx, maxy], [minx, miny]]);
 
           //rescale active layer geometry as per updated bounding box
-          scaleBorderToBounding(dataLayers[boundingBox.activeLayerID - 1].borderBoxFeatures[0].getGeometry(), tempBoxVal);
+
+          dataLayers.forEach((item) => {
+            if (item.id == boundingBox.activeLayerID){
+              layerBox = item.borderBoxFeatures[0].getGeometry();
+            }
+          });
+          scaleBorderToBounding(layerBox, tempBoxVal);
           tempBoxVal = [...boundingBox.geometry.flatCoordinates];
 
           //update corner and edge points
@@ -342,8 +379,14 @@ function createBoundingBox() {
 
       //apply derived scale matrix to existing affine matrix
       pointTranlateEvents[i].on("translateend", function(evt) {
-          var parameters = dataLayers[boundingBox.activeLayerID - 1].parameters;
-          var layerBox = dataLayers[boundingBox.activeLayerID - 1].borderBoxFeatures[0].getGeometry().flatCoordinates;
+          var parameters;
+          var layerBox;
+          dataLayers.forEach((item) => {
+            if (item.id == boundingBox.activeLayerID){
+              layerBox = item.borderBoxFeatures[0].getGeometry().flatCoordinates;
+              parameters = item.parameters;
+            }
+          });
           parameters.affinematrix = findAffineTransformedVals(layerBox);
 
           //updates form
@@ -373,23 +416,42 @@ function createBoundingBox() {
       );
     }
 
-    var selectedStyle = new ol.style.Style({
-     stroke: new ol.style.Stroke({
-       width: 5,
-       color: 'blue'
-     }),
-     fill: new ol.style.Fill()
+    //Highlights corner points and bounding box on hover
+    map.on('pointermove', function(evt){
+      var pixel = evt.pixel;
+
+      cornerPointFeatures.forEach(function(feature){
+        feature.getStyle().getText().setStroke();
+        feature.changed();
+      });
+      edgePointFeatures.forEach(function(feature){
+        feature.getStyle().getText().setStroke();
+        feature.changed();
+      });
+
+      if (boundingBox.boundingFeat.getStyle().length > 1)
+        boundingBox.boundingFeat.getStyle().shift();
+
+      var flag = false;
+      map.forEachFeatureAtPixel(pixel, function(feature){
+        if (feature.get("pointIndex") || feature.get("pointIndex") === 0){
+          var tempStyle = feature.getStyle();
+          feature.getStyle().getText().setStroke(
+            new ol.style.Stroke({ color: 'grey', width: 2 })
+          );
+          feature.changed();
+          flag = true;
+        } else if (!flag && feature == boundingBox.boundingFeat && !boundingBox.boundingFeat.getStyle()[1]){
+          boundingBox.boundingFeat.getStyle().unshift(
+            new ol.style.Style({
+              stroke: new ol.style.Stroke({ color: 'grey', width: 4, lineDash: [20, 20] })
+            })
+          );
+        }
+      },
+      { hitTolerance: 5 });
+
     });
-
-    var lel = new ol.style.Style({
-      text: new ol.style.Text({
-        fill: new ol.style.Fill({
-          //color: 'blue',
-          stroke: new ol.style.Stroke({ color: 'blue', width: 5})
-        }),
-      })
-    })
-
 
 }
 

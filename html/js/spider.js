@@ -237,7 +237,7 @@ function createPermalink(parameters) {
     if (parameters.geometry === "polygon") {
         if (parameters.polysize)
             parts.push(parameters.polysize)
-       if (parameters.maxseg)
+        if (parameters.maxseg)
             parts.push(parameters.maxseg) 
     }
     
@@ -295,9 +295,10 @@ function populateFormFromURL() {
             jQuery("input[name='maxsize1']").val(maxSizeParts[1])
         }
         if (distributionLongName != "parcel" && geometry === "polygon") {
-            var polyParts = params[i++].split(",")
-            jQuery("input[name='polysize']").val(polyParts[0])
-            jQuery("input[name='maxseg']").val(polyParts[1])
+            var polySize = params[i++]
+            jQuery("input[name='polysize']").val(polySize)
+            var polySeg = params[i++]
+            jQuery("input[name='maxseg']").val(polySeg)
         }
         // Parse distribution specific parameters
         for (inputName in fEnableObj) {

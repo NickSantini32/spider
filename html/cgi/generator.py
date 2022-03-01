@@ -34,7 +34,10 @@ class DataSink(ABC):
     @abstractmethod
     def writeBox(self, coordinates):
         pass
-
+#add one for polygon
+    @abstractmethod
+    def writePolygon(self, coordinates):
+        pass
     @abstractmethod
     def flush(self):
         pass
@@ -52,7 +55,13 @@ class CSVSink(DataSink):
         self.output.write(",")
         self.output.write(",".join([str(elem) for elem in maxCoordinates]))
         self.output.write("\n")
-    
+    #add one for polygon
+    def writePolygon(self, coordinates):
+        for coord in coordinates:
+            self.output.write(",".join([str(elem) for elem in coord]))
+            self.output.write(";")
+        self.output.write(f"{coordinates[0][0]},{coordinates[0][1]}")
+        self.output.write("\n")
     def flush(self):
         self.output.flush()
 
@@ -72,6 +81,13 @@ class WKTSink(DataSink):
         self.output.write(f"{maxCoordinates[0]} {maxCoordinates[1]},")
         self.output.write(f"{minCoordinates[0]} {maxCoordinates[1]},")
         self.output.write(f"{minCoordinates[0]} {minCoordinates[1]}")
+        self.output.write("))\n")
+    def writePolygon(self, coordinates):
+        self.output.write("POLYGON((")
+        for coord in coordinates:
+            self.output.write(" ".join([str(elem) for elem in coord]))
+            self.output.write(",")
+        self.output.write(f"{coordinates[0][0]} {coordinates[0][1]}")
         self.output.write("))\n")
 
     def flush(self):
@@ -105,7 +121,16 @@ class GeoJSONSink(DataSink):
         self.output.write(f"[{minCoordinates[0]},{minCoordinates[1]}]")
         self.output.write("]]} }")
         self.first_record = False
+    def writePolygon(self, coordinates):
+        self.output.write("\n")
+        self.output.write('{"type": "Feature", "geometry": { "type": "Polygon", "coordinates": [[')
+        for coord in coordinates:
+            self.output.write("[")
+            self.output.write(",".join([str(elem) for elem in coord]))
+            self.output.write("],")
+        self.output.write(f"{coordinates[0]}")
 
+        self.output.write("]]} }")
     def flush(self):
         self.output.write("]}")
         self.output.flush()
@@ -129,8 +154,44 @@ class PointToBoxSink(DataSink):
     def writeBox(self, minCoordinates, maxCoordinates):
         self.sink.writeBox(minCoordinates, maxCoordinates)
     
+    def writePolygon(self, coordinates):
+        sys.stdout.write("writing a polygon")
+        #google what join does
     def flush(self):
         self.sink.flush()
+class PointToPolygonSink(DataSink):
+    def __init__(self, sink, maxseg, polysize):
+        self.sink = sink
+        self.maxseg = maxseg
+        self.polysize = polysize
+    def transform(self, center, angle):
+        x = center[0] + self.polysize * math.cos(angle)
+        y = center[1] + self.polysize * math.sin(angle)
+        return [x, y]
+    def flush(self):
+        self.sink.flush()
+
+    def writePoint(self, coordinates):
+        center = coordinates
+        minSegs = 3
+        if(self.maxseg <= 3):
+            numSegments = minSegs
+        else:
+            numSegments = dice(self.maxseg - minSegs) + minSegs
+        angles = []
+        for increment in range(0, numSegments):
+            angles.append(uniform(0, math.pi * 2))
+        angles.sort()
+        points = []
+        for angle in angles:
+            points.append(self.transform(center, angle))
+        self.writePolygon(points)
+    
+    def writeBox(self, coordinates):
+        print("got to write box")
+    
+    def writePolygon(self, coordinates):
+        self.sink.writePolygon(coordinates)
 
 class BZ2OutputStream:
     def __init__(self, output):
@@ -182,6 +243,10 @@ class AffineTransformSink(DataSink):
     def writeBox(self, minCoordinates, maxCoordinates):
         self.sink.writeBox(self.affineTransformPoint(minCoordinates), self.affineTransformPoint(maxCoordinates))
     
+    def writePolygon(self, coordinates):
+        for coord in coordinates:
+            self.sink.writeBox(self.affineTransformPoint(coord[0]), self.affineTransformPoint(coord[1]))
+
     def flush(self):
         self.sink.flush()
 
@@ -499,7 +564,12 @@ def main():
     if (geometryType == 'box' and distribution != 'parcel'):
         maxsize = [float(x) for x in form.getvalue("maxsize").split(",")]
         datasink = PointToBoxSink(datasink, maxsize)
+    if (geometryType == 'polygon' and distribution != 'parcel'):
+        polysize = float(form.getvalue("polysize"))
+        maxseg = float(form.getvalue("maxseg"))
+        datasink = PointToPolygonSink(datasink, maxseg, polysize)
     
+
     # If the number of parmaeters for the affineMatrix is correct, apply the affine transformation
     if (affineMatrix is not None and len(affineMatrix) == dimensions * (dimensions + 1)):
         affineMatrix = [float(x) for x in form.getvalue("affinematrix").split(",")]
@@ -511,3 +581,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+ 

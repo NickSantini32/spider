@@ -13,7 +13,7 @@ var map;
 // The control that zooms to all dataset on the visualization component
 var zoomAllControl;
 // A flag to ensure that we change the map view to contain the first generated dataset
-var firstDataset = true;
+var firstDataset = true;     
 
 // A map of which input fields to enable for each distribution
 var fEnableObj = {
@@ -118,7 +118,7 @@ function createSparkCode(parameters) {
     // Update the generation code
     var code = "import edu.ucr.cs.bdlab.beast._\n"
     code += "import edu.ucr.cs.bdlab.beast.generator._\n"
-    code += "val generatedData: SpatialRDD = sparkContext.generateSpatialData(";
+    code += "val generatedData: SpatialRDD = sc.generateSpatialData\n";
     const SparkDistributionNames = {
         "uniform": "UniformDistribution",
         "diagonal": "DiagonalDistribution",
@@ -127,43 +127,41 @@ function createSparkCode(parameters) {
         "bit": "BitDistribution",
         "sierpinski": "SierpinskiDistribution"
     }
-    code += SparkDistributionNames[parameters.distribution]
-    code += ", "
-    code += parameters.cardinality + ", \n"
-    code += "  opts = Seq("
+    code += "  .distribution("+SparkDistributionNames[parameters.distribution]+")\n"
     const ParameterNames = {
         "dimensions": "SpatialGenerator.Dimensions",
         "seed": "SpatialGenerator.Seed",
         "affinematrix": "SpatialGenerator.AffineMatrix",
-        "geometry": "PointBasedGenerator.GeometryType",
-        "maxsize": "PointBasedGenerator.MaxSize",
-        "percentage": "DiagonalGenerator.Percentage",
-        "buffer": "DiagonalGenerator.Buffer",
-        "digits": "BitGenerator.Digits",
-        "probability": "BitGenerator.Probability",
-        "dither": "ParcelGenerator.Dither",
-        "srange": "ParcelGenerator.SplitRange"
+        "geometry": "UniformDistribution.GeometryType",
+        "maxsize": "UniformDistribution.MaxSize",
+        "maxseg": "UniformDistribution.MaxSeg",
+        "polysize": "UniformDistribution.PolySize",
+        "percentage": "DiagonalDistribution.Percentage",
+        "buffer": "DiagonalDistribution.Buffer",
+        "digits": "BitDistribution.Digits",
+        "probability": "BitDistribution.Probability",
+        "dither": "ParcelDistribution.Dither",
+        "srange": "ParcelDistribution.SplitRange"
     }
     for (key in parameters) {
         if (ParameterNames[key]) {
           var value = parameters[key];
           if (value) {
             if (key === "affinematrix") {
-              // Adjust the affine matrix to match the Scala implememntation
+              // Adjust the affine matrix to match the Scala implementation
               // Matrix transpose
               value = [value[0], value[3], value[1], value[4], value[2], value[5]]
             }
             let numericRegex = /^[\d.-]+$/
             if (numericRegex.exec(value.toString()))
-              code += `${ParameterNames[key]} -> ${value}, `
+              code += `  .config(${ParameterNames[key]}, ${value})\n`
             else
-              code += `${ParameterNames[key]} -> "${value}", `
+              code += `  .config(${ParameterNames[key]}, "${value}")\n`
           }
         }
     }
     // Remove the last comma
-    code = code.substring(0, code.length - 2)
-    code += "))"
+    code += `  .generate(cardinality=${parameters.cardinality})`
     return code;
 }
 
@@ -203,8 +201,12 @@ function createDownloadLink(parameters) {
     parameters.compress = "bz2";
     if (parameters.affinematrix)
         parameters.affinematrix = parameters.affinematrix.join(",")
-    if (parameters.maxsize)
-        parameters.maxsize = parameters.maxsize.join(",")
+        
+        if (parameters.geometry === "box") {
+            if (parameters.maxsize)
+                parameters.maxsize = parameters.maxsize.join(",") 
+        }
+        
     if (!parameters.seed)
         parameters.seed = new Date().getTime()
     rng = new Math.seedrandom(parameters.seed);
@@ -227,8 +229,18 @@ function createPermalink(parameters) {
     parts.push(parameters.seed)
     if (parameters.distribution != "parcel")
         parts.push(parameters.geometry)
-    if (parameters.maxsize)
-        parts.push(parameters.maxsize.join(","))
+    if (parameters.geometry === "box") {
+        if (parameters.maxsize)
+            parts.push(parameters.maxsize.join(","))  
+    }
+    
+    if (parameters.geometry === "polygon") {
+        if (parameters.polysize)
+            parts.push(parameters.polysize)
+       if (parameters.maxseg)
+            parts.push(parameters.maxseg) 
+    }
+    
     for (inputName in fEnableObj) {
         if (fEnableObj[inputName] === parameters.distribution)
             parts.push(parameters[inputName])
@@ -271,14 +283,21 @@ function populateFormFromURL() {
         var geometry;
         if (distributionLongName != "parcel")
             geometry = params[i++];
-        else
+        else if (distributionLongName === "box")
             geometry = "box";
+        else if (distributionLongName === "polygon")
+            geometry = "polygon"
         jQuery("#geometry").val(geometry);
         // Parse the maxsize
         if (distributionLongName != "parcel" && geometry === "box") {
             var maxSizeParts = params[i++].split(",")
             jQuery("input[name='maxsize0']").val(maxSizeParts[0])
             jQuery("input[name='maxsize1']").val(maxSizeParts[1])
+        }
+        if (distributionLongName != "parcel" && geometry === "polygon") {
+            var polyParts = params[i++].split(",")
+            jQuery("input[name='polysize']").val(polyParts[0])
+            jQuery("input[name='maxseg']").val(polyParts[1])
         }
         // Parse distribution specific parameters
         for (inputName in fEnableObj) {
@@ -398,6 +417,13 @@ function createMapLayer(layer) {
     }
     if (parameters.maxsize){
         parameters.maxsize = parameters.maxsize.join(",");
+    }
+    //ADDED FOR POLYGON
+    if(parameters.polysize){
+        parameters.polysize = parameters.polysize;
+    }
+    if(parameters.maxseg){
+        parameters.maxseg = parameters.maxseg;
     }
     if (!parameters.seed){
         parameters.seed = new Date().getTime();
@@ -661,6 +687,12 @@ function validateForm() {
         formValues.maxwidth = formValues.maxsize[0]
         formValues.maxheight = formValues.maxsize[1]
     }
+    if (formValues.distribution != "parcel" && formValues.geometry === "polygon") {
+        positiveInteger.push("maxseg")
+        zeroToOne.push("polysize")
+        formValues.maxseg = formValues.maxseg[0]
+        formValues.polysize = formValues.polysize[1]
+    }
     positiveInteger.forEach(function(key) {
         if (formValues[key]) {
             var value = parseFloat(formValues[key]);
@@ -698,12 +730,22 @@ function hideInputs() {
         jQuery("#geometry-box").prop("checked", true);
         jQuery("select#geometry").attr("disabled", true);
         jQuery(".inputfield.maxsize").addClass("hidden");
+        jQuery(".inputfield.polysize").addClass("hidden");
+        jQuery(".inputfield.maxseg").addClass("hidden");
     } else {
         jQuery("select#geometry").attr("disabled", false)
         if (jQuery("#geometry").val() == "box") {
             jQuery(".inputfield.maxsize").removeClass("hidden");
+            jQuery(".inputfield.polysize").addClass("hidden");
+            jQuery(".inputfield.maxseg").addClass("hidden");
+        } else if (jQuery("#geometry").val() == "polygon") {
+            jQuery(".inputfield.polysize").removeClass("hidden");
+            jQuery(".inputfield.maxseg").removeClass("hidden");
+            jQuery(".inputfield.maxsize").addClass("hidden");
         } else {
             jQuery(".inputfield.maxsize").addClass("hidden");
+            jQuery(".inputfield.polysize").addClass("hidden");
+            jQuery(".inputfield.maxseg").addClass("hidden");
         }
     }
 }
@@ -860,13 +902,15 @@ class Generator{
      */
     pointToBox(minCoordinates, maxCoordinates){
         var coordinates = [];
-        for (let i = 0; i < minCoordinates.length; i++){
+        for (let i = 0; i < minCoordinates.length; i++) {
             coordinates.push(minCoordinates[i]);
         }
-        for (let i = 0; i < maxCoordinates.length; i++){
+        for (let i = 0; i < maxCoordinates.length; i++) {
             coordinates.push(maxCoordinates[i]);
         }
-        var feature = new ol.Feature({geometry: new ol.geom.LineString([
+        //use this line to create a polygon
+        var feature = new ol.Feature({
+            geometry: new ol.geom.LineString([
                 [coordinates[0], coordinates[1]],
                 [coordinates[2], coordinates[1]],
                 [coordinates[2], coordinates[3]],
@@ -898,6 +942,17 @@ class DataGenerator extends Generator{
         throw "Using abstract function";
     }
 
+    transform(angle) {
+        var distance = uniform(0, parameters.polysize)
+        var x = center[0] + parameters.polysize * Math.cos(angle);
+        var y = center[1] + parameters.polysize * Math.sin(angle);
+        //returns the x and y array
+        if (this.affineMatrix) {
+            return points = affineTransform([x, y], this.affineMatrix);
+        } else {
+            return [x, y]
+        }
+    }
     /**
      * Generates data and displays it on to the screen.
      * @param {object} source
@@ -910,15 +965,13 @@ class DataGenerator extends Generator{
 
         while (i < this.cardinality){
             var newpoint = this.generatePoint(i, prevpoint);
-            if (this.isValidPoint(newpoint)){
-
-                if (this.affineMatrix){
-                    newpoint = affineTransform(newpoint, this.affineMatrix);
-                }
-
+            if (this.isValidPoint(newpoint)) {
                 var feature;
-                if (parameters.geometry == "point"){
-                    feature = new ol.Feature({geometry: new ol.geom.Point(newpoint)});
+                if (parameters.geometry == "point") {
+                    if (this.affineMatrix) {
+                        newpoint = affineTransform(newpoint, this.affineMatrix);
+                    }
+                    feature = new ol.Feature({ geometry: new ol.geom.Point(newpoint) });
                 }
                 else if (parameters.geometry == "box"){
                     var minCoordinates = [];
@@ -928,9 +981,64 @@ class DataGenerator extends Generator{
                         let size = uniform(0, maxsize[d]);
                         minCoordinates.push(newpoint[d] - size);
                         maxCoordinates.push(newpoint[d] + size);
+
+
+                    }
+                    //fix this to take the min and max vals and then transform the matrix
+
+                    if (this.affineMatrix) {
+                        minCoordinates = affineTransform(minCoordinates, this.affineMatrix);
+                        maxCoordinates = affineTransform(maxCoordinates, this.affineMatrix);
+
                     }
                     feature = this.pointToBox(minCoordinates, maxCoordinates);
+                } else if (parameters.geometry == "polygon") {
+                    if (parameters.dimensions != 2) {
+                        console.log("error: expected 2 dimensions, got", parameters.dimensions);
+                    }
+
+                    var center = this.generatePoint();
+                    console.log(parameters);
+                    var minSegs = 3;
+                    //generates a random num between user inputted max and const minSeg-> then add minSegs back
+                    var numSegments;
+                    if (parameters.maxseg <= 3) {
+                        numSegments = minSegs;
+                    } else {
+                        numSegments = dice(parameters.maxseg - minSegs) + minSegs;
+                    }
+                    
+                    var angles = [];
+                    //fills array with random angles
+                    for (var increment = 0; increment < numSegments; ++increment) {
+                        angles.push(uniform(0, Math.PI * 2));
+                    }
+
+                    //a random array of angles
+                    angles = angles.sort();
+
+                    //creates a new array that will be filled with the x and y coordinates so that it can generate a point
+                    var points = angles.map(angle => {
+                        var distance = uniform(0, parameters.polysize)
+
+                        var x = center[0] + parameters.polysize * Math.cos(angle);
+                        var y = center[1] + parameters.polysize * Math.sin(angle);
+                        //returns the x and y array
+                        if (this.affineMatrix) {
+                            return points = affineTransform([x, y], this.affineMatrix);
+                        } else {
+                            return [x, y]
+                        }
+                    })
+
+                    //adds the last point to connect the line segments of the polygon
+                    points.push(points[0]);
+                    //draws the polygon
+                    feature = new ol.Feature({ geometry: new ol.geom.LineString(points) });
+
+
                 }
+
 
                 source.addFeature(feature); //write feature to the screen
                 prevpoint = newpoint;

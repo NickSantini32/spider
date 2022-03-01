@@ -231,6 +231,7 @@ function createPermalink(parameters) {
     if (parameters.geometry === "polygon") {
         if (parameters.polysize)
             parts.push(parameters.polysize)
+        if (parameters.maxseg)
             parts.push(parameters.maxseg) 
     }
     

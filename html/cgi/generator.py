@@ -122,15 +122,26 @@ class GeoJSONSink(DataSink):
         self.output.write("]]} }")
         self.first_record = False
     def writePolygon(self, coordinates):
+        if not self.first_record:
+            self.output.write(",")
         self.output.write("\n")
         self.output.write('{"type": "Feature", "geometry": { "type": "Polygon", "coordinates": [[')
+        #array for coordinates
+        temp1 = []
         for coord in coordinates:
-            self.output.write("[")
-            self.output.write(",".join([str(elem) for elem in coord]))
-            self.output.write("],")
-        self.output.write(f"{coordinates[0]}")
-
+            #joins each of the array elements in array coordinates into a string separated by a comma
+            coords = ",".join([str(elem) for elem in coord])
+            out = f"[{coords}]"
+            #appends formatted string into the array
+            temp1.append(out)
+        #formats first array in array coordinates to append at the end
+        lastCoord= ",".join([str(elem) for elem in coordinates[0]])
+        temp1.append(f"[{lastCoord}]")
+        self.output.write(",".join(temp1))
         self.output.write("]]} }")
+        self.first_record = False
+
+        #self.output.write(" }")
     def flush(self):
         self.output.write("]}")
         self.output.flush()

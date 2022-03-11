@@ -778,6 +778,7 @@ function formToJSON() {
         // Need to parse the max size
         parameters.maxsize = [parseFloat(parameters.maxsize0), parseFloat(parameters.maxsize1)]
     }
+    //ADD ONE FOR POLYGON?
     delete parameters.maxsize0;
     delete parameters.maxsize1;
     return parameters;
